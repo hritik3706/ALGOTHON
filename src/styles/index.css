@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0B0B0C;
+  --fg: #FFFFFF;
+  --accent: #C6F432;
+  --surface: #121214;
+  --surface-2: #17171A;
+  --border: rgba(255, 255, 255, 0.08);
+  --fg-muted: rgba(255, 255, 255, 0.60);
+  --fg-faint: rgba(255, 255, 255, 0.38);
+  --accent-ink: #0B0B0C;
+  --accent-glow: rgba(198, 244, 50, 0.35);
+  --danger: #E5604D;
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessible focus ring in accent color */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hero vertical luminous glow beam matching the reference screenshot */
+.hero-glow-beam {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 900px;
+  height: 600px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 65% 50% at 50% 60%,
+    rgba(198, 244, 50, 0.28) 0%,
+    rgba(198, 244, 50, 0.12) 45%,
+    rgba(198, 244, 50, 0.04) 65%,
+    transparent 80%
+  );
+  filter: blur(40px);
+}
+
+/* Radial under-card aura */
+.cards-glow-aura {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 1100px;
+  height: 350px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 60% 40% at 50% 80%,
+    rgba(198, 244, 50, 0.16) 0%,
+    transparent 70%
+  );
+  filter: blur(50px);
+}
+
+/* Card tilts matching reference */
+.card-tilt-left {
+  transform: perspective(1000px) rotate(-3.5deg) translateY(8px);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-tilt-left:hover {
+  transform: perspective(1000px) rotate(-1.5deg) translateY(0px);
+}
+
+.card-tilt-right {
+  transform: perspective(1000px) rotate(3.5deg) translateY(8px);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-tilt-right:hover {
+  transform: perspective(1000px) rotate(1.5deg) translateY(0px);
+}
+
+.card-center-elevated {
+  transform: scale(1.04);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(198, 244, 50, 0.18);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-center-elevated:hover {
+  transform: scale(1.06);
+}
+
+@media (max-width: 860px) {
+  .card-tilt-left,
+  .card-tilt-right,
+  .card-center-elevated {
+    transform: none !important;
+  }
+}
+
