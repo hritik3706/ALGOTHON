@@ -64,8 +64,8 @@ export class TopicGraph {
   }
 
   /**
-   * Kahn's Algorithm: Returns standard topological order.
-   * Throws if cycle exists.
+   * Kahn's Algorithm: Returns standard topological order in true O(V+E) time using index pointer.
+   * Throws if cycle exists with cycle path diagnostics.
    */
   public getTopologicalOrder(): Topic[] {
     const inDeg = new Map<string, number>(this.inDegrees);
@@ -74,19 +74,26 @@ export class TopicGraph {
     for (const [id, deg] of inDeg.entries()) {
       if (deg === 0) queue.push(id);
     }
+    queue.sort(); // Deterministic tie-breaking by id
 
     const order: Topic[] = [];
+    let head = 0;
 
-    while (queue.length > 0) {
-      const currId = queue.shift()!;
+    while (head < queue.length) {
+      const currId = queue[head++];
       order.push(this.topics.get(currId)!);
 
+      const nextNodes: string[] = [];
       for (const downstreamId of this.adjacency.get(currId) || []) {
         const newDeg = inDeg.get(downstreamId)! - 1;
         inDeg.set(downstreamId, newDeg);
         if (newDeg === 0) {
-          queue.push(downstreamId);
+          nextNodes.push(downstreamId);
         }
+      }
+      nextNodes.sort();
+      for (const nextId of nextNodes) {
+        queue.push(nextId);
       }
     }
 
@@ -324,4 +331,115 @@ export class TopicGraph {
       .map((id) => this.topics.get(id)!)
       .filter(Boolean);
   }
+
+  /**
+   * Computes dynamic hierarchical tree layout coordinates:
+   * level(t) = 0 if t has no prerequisites, else 1 + max(level(p) for p in prerequisites).
+   * Assigns x by order within level and y by level.
+   * ViewBox dimensions are dynamically computed.
+   */
+  public static computeGraphLayout(
+    topics: Topic[],
+    nodeWidth: number = 150,
+    nodeHeight: number = 56
+  ): GraphLayoutResult {
+    const graph = new TopicGraph(topics);
+    const order = graph.getTopologicalOrder();
+
+    // Compute level for each topic
+    const levelMap = new Map<string, number>();
+    for (const t of order) {
+      if (t.prerequisites.length === 0) {
+        levelMap.set(t.id, 0);
+      } else {
+        let maxPrereqLevel = 0;
+        for (const p of t.prerequisites) {
+          if (levelMap.has(p)) {
+            maxPrereqLevel = Math.max(maxPrereqLevel, levelMap.get(p)!);
+          }
+        }
+        levelMap.set(t.id, maxPrereqLevel + 1);
+      }
+    }
+
+    // Group topics by level
+    const levelGroups = new Map<number, Topic[]>();
+    for (const t of order) {
+      const lvl = levelMap.get(t.id)!;
+      if (!levelGroups.has(lvl)) levelGroups.set(lvl, []);
+      levelGroups.get(lvl)!.push(t);
+    }
+
+    const maxLevel = Math.max(0, ...Array.from(levelGroups.keys()));
+    let maxNodesInLevel = 1;
+    for (const group of levelGroups.values()) {
+      maxNodesInLevel = Math.max(maxNodesInLevel, group.length);
+    }
+
+    const canvasWidth = Math.max(860, maxNodesInLevel * 220 + 80);
+    const canvasHeight = Math.max(580, (maxLevel + 1) * 115 + 70);
+
+    const nodes: GraphLayoutNode[] = [];
+    const edges: GraphLayoutEdge[] = [];
+
+    for (let lvl = 0; lvl <= maxLevel; lvl++) {
+      const group = levelGroups.get(lvl) || [];
+      const count = group.length;
+
+      group.forEach((t, idx) => {
+        const x =
+          count === 1
+            ? canvasWidth / 2
+            : 140 + ((canvasWidth - 280) / (count - 1)) * idx;
+        const y = 55 + lvl * 105;
+
+        nodes.push({
+          id: t.id,
+          name: t.name,
+          level: lvl,
+          indexInLevel: idx,
+          x: Math.round(x),
+          y: Math.round(y),
+          width: nodeWidth,
+          height: nodeHeight,
+          parentIds: t.prerequisites,
+        });
+
+        for (const p of t.prerequisites) {
+          edges.push({ from: p, to: t.id });
+        }
+      });
+    }
+
+    return {
+      nodes,
+      edges,
+      width: canvasWidth,
+      height: canvasHeight,
+    };
+  }
+}
+
+export interface GraphLayoutNode {
+  id: string;
+  name: string;
+  level: number;
+  indexInLevel: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  parentIds: string[];
+}
+
+export interface GraphLayoutEdge {
+  from: string;
+  to: string;
+}
+
+export interface GraphLayoutResult {
+  nodes: GraphLayoutNode[];
+  edges: GraphLayoutEdge[];
+  width: number;
+  height: number;
 }

@@ -57,8 +57,28 @@ export class FileStorageAdapter implements IStorageAdapter {
     // 1. Atomic write to temp file first
     fs.writeFileSync(this.tempFilePath, payload, 'utf-8');
 
-    // 2. Atomic rename of temp file over primary store
-    fs.renameSync(this.tempFilePath, this.filePath);
+    // 2. Atomic rename of temp file over primary store (with Windows EPERM resilience)
+    try {
+      fs.renameSync(this.tempFilePath, this.filePath);
+    } catch (err: any) {
+      if (err?.code === 'EPERM' || err?.code === 'EEXIST') {
+        try {
+          if (fs.existsSync(this.filePath)) {
+            fs.unlinkSync(this.filePath);
+          }
+          fs.renameSync(this.tempFilePath, this.filePath);
+        } catch {
+          fs.copyFileSync(this.tempFilePath, this.filePath);
+          try {
+            fs.unlinkSync(this.tempFilePath);
+          } catch {
+            // ignore cleanup failure
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
   }
 
   public createBackup(): void {

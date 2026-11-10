@@ -15,6 +15,8 @@ import {
   PlanItem,
   LogAttemptInput,
   AddProblemInput,
+  TopicCoverageRow,
+  GraphLayoutResult,
 } from '../types';
 import {
   SEED_TOPICS,
@@ -22,7 +24,7 @@ import {
   SEED_ATTEMPTS,
   SEED_REVISIONS,
   getRelativeDate,
-} from '../api/mock/seedData';
+} from './seed';
 
 class StoreManager {
   private storage: Storage;
@@ -265,9 +267,31 @@ class StoreManager {
     };
   }
 
+  public getCoverageMatrix(): TopicCoverageRow[] {
+    const topics = this.storage.getTopics();
+    const problems = this.storage.getProblems();
+    const attempts = this.storage.getAttempts();
+    const rows = StatsEngine.computeCoverageMatrix(topics, problems, attempts);
+    const summaries = this.getTopics();
+    const unlockMap = new Map(summaries.map((s) => [s.topic.id, s.is_unlocked]));
+    return rows.map((r) => ({
+      ...r,
+      is_unlocked: unlockMap.get(r.topic_id) ?? r.is_unlocked,
+    }));
+  }
+
+  public getGraphLayout(): GraphLayoutResult {
+    const topics = this.storage.getTopics();
+    return TopicGraph.computeGraphLayout(topics);
+  }
+
   /**
    * Demo Support: Reload sample dataset
    */
+  public loadDemoData(): void {
+    this.storage.loadDemoData();
+  }
+
   public resetToSampleData(): void {
     const adapter = new LocalStorageAdapter();
     adapter.saveSeedTopics(SEED_TOPICS);

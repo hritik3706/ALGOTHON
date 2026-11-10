@@ -1,8 +1,6 @@
 import type { FC } from 'react';
 import { LogoMark } from '../brand/LogoMark';
 import { Button } from '../common/Button';
-import { useAuth } from '../../core/auth/AuthContext';
-import { User, LogOut } from 'lucide-react';
 
 interface LandingNavProps {
   onNavigateToApp: (screen?: string) => void;
@@ -15,8 +13,6 @@ export const LandingNav: FC<LandingNavProps> = ({
   activeSection = 'features',
   onSectionClick,
 }) => {
-  const { user, openAuthModal, signOut } = useAuth();
-
   const navLinks = [
     { id: 'features', label: 'Features' },
     { id: 'topics', label: 'Topics' },
@@ -35,7 +31,7 @@ export const LandingNav: FC<LandingNavProps> = ({
           <LogoMark showWordmark={true} size={28} />
         </div>
 
-        {/* Center: Navigation Links with active lime dot */}
+        {/* Center: Navigation Links with active dot */}
         <nav className="hidden md:flex items-center gap-7">
           {navLinks.map((link) => {
             const isActive = activeSection === link.id;
@@ -63,33 +59,8 @@ export const LandingNav: FC<LandingNavProps> = ({
           })}
         </nav>
 
-        {/* Right: Auth State (Sign in / User Profile) + Start tracking CTA */}
+        {/* Right: Start tracking CTA */}
         <div className="flex items-center gap-3">
-          {user ? (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-surface-2 border border-border text-xs font-mono text-fg">
-                <User className="w-3.5 h-3.5 text-accent" />
-                <span className="truncate max-w-[120px]">{user.email?.split('@')[0]}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => signOut()}
-                title="Sign out"
-                className="text-fg-faint hover:text-danger p-1.5 rounded-full hover:bg-surface-2 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => openAuthModal('signin')}
-              className="text-fg-muted hover:text-fg font-ui text-xs sm:text-sm px-3.5 py-1.5 rounded-pill border border-border/80 hover:border-white/20 transition-all"
-            >
-              Sign in
-            </button>
-          )}
-
           <Button
             size="sm"
             variant="primary"

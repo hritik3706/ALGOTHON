@@ -1,4 +1,4 @@
-import { Problem, Attempt, MistakeTag, Topic } from '../../types';
+import { Problem, Attempt, MistakeTag, Topic, TopicCoverageRow } from '../../types';
 
 export interface TopicStatRecord {
   topicId: string;
@@ -136,6 +136,50 @@ export class StatsEngine {
       if (a.isUntested && !b.isUntested) return 1;
       if (!a.isUntested && b.isUntested) return -1;
       return b.weakness - a.weakness;
+    });
+  }
+
+  /**
+   * Computes Topic × Difficulty coverage matrix.
+   * Cell value = number of DISTINCT problems in that topic and difficulty that have at least one 'solved' attempt.
+   * A problem with multiple topics counts in each of its topics.
+   */
+  public static computeCoverageMatrix(
+    topics: Topic[],
+    problems: Problem[],
+    attempts: Attempt[]
+  ): TopicCoverageRow[] {
+    const solvedProblemIds = new Set(
+      attempts.filter((a) => a.status === 'solved').map((a) => a.problem_id)
+    );
+
+    return topics.map((topic) => {
+      const topicProblems = problems.filter((p) => p.topic_ids.includes(topic.id));
+
+      const easyProblems = topicProblems.filter((p) => p.difficulty === 'easy');
+      const mediumProblems = topicProblems.filter((p) => p.difficulty === 'medium');
+      const hardProblems = topicProblems.filter((p) => p.difficulty === 'hard');
+
+      const easySolved = easyProblems.filter((p) => solvedProblemIds.has(p.id)).length;
+      const mediumSolved = mediumProblems.filter((p) => solvedProblemIds.has(p.id)).length;
+      const hardSolved = hardProblems.filter((p) => solvedProblemIds.has(p.id)).length;
+
+      const totalSolved = easySolved + mediumSolved + hardSolved;
+      const totalProblems = topicProblems.length;
+      const masteryPercentage =
+        totalProblems > 0 ? Math.round((totalSolved / totalProblems) * 100) : 0;
+
+      return {
+        topic_id: topic.id,
+        topic_name: topic.name,
+        easy: { solved: easySolved, total: easyProblems.length },
+        medium: { solved: mediumSolved, total: mediumProblems.length },
+        hard: { solved: hardSolved, total: hardProblems.length },
+        total_solved: totalSolved,
+        total_problems: totalProblems,
+        mastery_percentage: masteryPercentage,
+        is_unlocked: topic.prerequisites.length === 0,
+      };
     });
   }
 }

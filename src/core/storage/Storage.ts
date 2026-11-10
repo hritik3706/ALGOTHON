@@ -8,7 +8,7 @@ import {
   AttemptStatus,
   MistakeTag,
 } from '../../types';
-import { SEED_TOPICS, SEED_PROBLEMS, SEED_ATTEMPTS, SEED_REVISIONS } from '../../api/mock/seedData';
+import { SEED_TOPICS, SEED_PROBLEMS, SEED_ATTEMPTS, SEED_REVISIONS } from '../seed';
 
 const CURRENT_SCHEMA_VERSION = 1;
 
@@ -55,12 +55,19 @@ export class Storage {
       for (const a of storedData.attempts) this.attempts.set(a.id, a);
       for (const r of storedData.revisions) this.revisions.set(r.problem_id, r);
     } else {
-      // First boot: populate with initial seed dataset
-      for (const p of SEED_PROBLEMS) this.problems.set(p.id, p);
-      for (const a of SEED_ATTEMPTS) this.attempts.set(a.id, a);
-      for (const r of SEED_REVISIONS) this.revisions.set(r.problem_id, r);
+      // First boot: boots completely empty (0 problems, 0 attempts, 0 revisions)
       this.persist();
     }
+  }
+
+  public loadDemoData(): void {
+    this.problems.clear();
+    this.attempts.clear();
+    this.revisions.clear();
+    for (const p of SEED_PROBLEMS) this.problems.set(p.id, p);
+    for (const a of SEED_ATTEMPTS) this.attempts.set(a.id, a);
+    for (const r of SEED_REVISIONS) this.revisions.set(r.problem_id, r);
+    this.persist();
   }
 
   public subscribe(listener: () => void): () => void {

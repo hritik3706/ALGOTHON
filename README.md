@@ -47,12 +47,10 @@ c:\ALGOTHON\
 │   ├── 01_Brief_Frontend_Phase1.md
 │   ├── DEMO.md                  # 2-minute step-by-step walkthrough
 │   ├── RESUME.md                # 4 stack-neutral resume bullets
-│   ├── SUPABASE_SETUP.md        # Supabase Auth & RLS schema configuration guide
 │   ├── design-reference.png     # Reference dark UI design
 │   └── graph-reference.png      # Reference NeetCode tree visualizer
 ├── src/
 │   ├── core/                    # Pure algorithmic core modules (I/O-free)
-│   │   ├── auth/                # Supabase Auth context, provider, session hooks
 │   │   ├── graph/
 │   │   │   ├── TopicGraph.ts    # Kahn's sort, cycle naming, weighted order, backward BFS
 │   │   │   └── PriorityQueue.ts # Generic Max-Heap
@@ -79,7 +77,7 @@ c:\ALGOTHON\
 │   │   ├── LandingPage.tsx      # High-contrast serif landing experience
 │   │   └── app/                 # Today, Log (autocomplete), Topics, Graph (NeetCode tree), Revisions, Insights
 │   └── styles/index.css         # Midnight Black, Pure White, Lime Green tokens
-└── tests/                       # 33 passing Vitest unit & e2e integration tests
+└── tests/                       # 38 passing Vitest unit & e2e integration tests
     ├── statsEngine.test.ts
     ├── topicGraph.test.ts
     ├── scheduler.test.ts
@@ -94,7 +92,7 @@ c:\ALGOTHON\
 ## How to Run & Test
 
 ```bash
-# 1. Run all 33 unit and end-to-end integration tests:
+# 1. Run all 38 unit and end-to-end integration tests:
 npm test
 
 # 2. Start development server:

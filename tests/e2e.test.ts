@@ -24,6 +24,7 @@ describe('End-to-End Demo Script Walkthrough', () => {
   it('runs the full 2-minute demo scenario flawlessly', () => {
     const adapter = new FileStorageAdapter(testDir);
     const storage = new Storage(adapter);
+    storage.loadDemoData();
     const graph = new TopicGraph(storage.getTopics());
 
     const today = '2026-11-10';

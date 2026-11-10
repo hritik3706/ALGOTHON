@@ -1,6 +1,5 @@
 import type { FC } from 'react';
 import { LogoMark } from '../brand/LogoMark';
-import { useAuth } from '../../core/auth/AuthContext';
 import {
   Calendar,
   PlusCircle,
@@ -9,8 +8,6 @@ import {
   Clock,
   BarChart3,
   ArrowLeft,
-  LogOut,
-  LogIn,
 } from 'lucide-react';
 
 export type AppScreenId =
@@ -32,7 +29,6 @@ export const AppNav: FC<AppNavProps> = ({
   onSelectScreen,
   onBackToLanding,
 }) => {
-  const { user, openAuthModal, signOut } = useAuth();
   const navItems: { id: AppScreenId; label: string; icon: typeof Calendar }[] = [
     { id: 'today', label: "Today's Plan", icon: Calendar },
     { id: 'log', label: 'Log Attempt', icon: PlusCircle },
@@ -88,36 +84,6 @@ export const AppNav: FC<AppNavProps> = ({
 
         {/* Bottom Actions */}
         <div className="pt-4 border-t border-border space-y-2">
-          {/* User Auth Profile / Sign In */}
-          {user ? (
-            <div className="flex items-center justify-between p-2 rounded-xl bg-surface-2/60 border border-border/50">
-              <div className="flex items-center gap-2 min-w-0 pr-1">
-                <div className="w-6 h-6 rounded-full bg-accent/15 text-accent flex items-center justify-center font-mono text-[10px] font-bold">
-                  {user.email?.charAt(0).toUpperCase()}
-                </div>
-                <span className="font-mono text-xs text-fg truncate">
-                  {user.email?.split('@')[0]}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => signOut()}
-                title="Sign out"
-                className="text-fg-faint hover:text-danger p-1 transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => openAuthModal('signin')}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-fg-muted hover:text-accent font-ui text-xs hover:bg-surface-2 transition-colors border border-border/60"
-            >
-              <LogIn className="w-3.5 h-3.5 text-accent" />
-              <span>Sign in / Sync</span>
-            </button>
-          )}
-
           <button
             onClick={onBackToLanding}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-fg-muted hover:text-fg font-ui text-xs hover:bg-surface-2 transition-colors"
@@ -164,4 +130,3 @@ export const AppNav: FC<AppNavProps> = ({
     </>
   );
 };
-

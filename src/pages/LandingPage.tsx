@@ -1,12 +1,13 @@
-import { FC, useEffect, useState } from 'react';
-import { LandingNav } from '../components/landing/LandingNav';
-import { StatBlock } from '../components/common/StatBlock';
+import { FC, useEffect, useState, useCallback } from 'react';
 import { Button } from '../components/common/Button';
+import { StatBlock } from '../components/common/StatBlock';
+import { LandingNav } from '../components/landing/LandingNav';
 import { TodaysPlanCard } from '../components/landing/TodaysPlanCard';
 import { TopicStrengthCard } from '../components/landing/TopicStrengthCard';
 import { RevisionTimelineCard } from '../components/landing/RevisionTimelineCard';
 import { FeatureGrid } from '../components/landing/FeatureGrid';
-import { getPlan, getInsights, PlanItem, InsightSummary } from '../api';
+import { getPlan, getInsights, loadDemoData, PlanItem, InsightSummary } from '../api';
+import { Database } from 'lucide-react';
 
 interface LandingPageProps {
   onNavigateToApp: (screen?: string) => void;
@@ -15,24 +16,30 @@ interface LandingPageProps {
 export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
   const [plan, setPlan] = useState<PlanItem[]>([]);
   const [insights, setInsights] = useState<InsightSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-    Promise.all([getPlan(), getInsights()]).then(([p, ins]) => {
-      if (mounted) {
-        setPlan(p);
-        setInsights(ins);
-      }
+  const fetchData = useCallback(() => {
+    return Promise.all([getPlan(), getInsights()]).then(([p, ins]) => {
+      setPlan(p);
+      setInsights(ins);
+      setIsLoading(false);
     });
-    return () => {
-      mounted = false;
-    };
   }, []);
 
-  const totalProblems = insights?.total_problems ?? 32;
-  const topicsUnlocked = insights?.topics_unlocked ?? 8;
-  const streak = insights?.streak ?? 5;
-  const dueToday = insights?.revisions_due_today ?? 2;
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleLoadDemo = async () => {
+    setIsLoading(true);
+    await loadDemoData();
+    await fetchData();
+  };
+
+  const totalProblems = insights?.total_problems ?? 0;
+  const topicsUnlocked = insights?.topics_unlocked ?? 0;
+  const streak = insights?.streak ?? 0;
+  const dueToday = insights?.revisions_due_today ?? 0;
 
   return (
     <div className="min-h-screen bg-bg text-fg relative overflow-hidden flex flex-col justify-between selection:bg-accent selection:text-accent-ink">
@@ -41,7 +48,7 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
 
       {/* Main Hero Container */}
       <main className="relative pt-8 sm:pt-14 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        {/* Luminous Vertical Lime Glow Beam behind headline */}
+        {/* Luminous Vertical Glow Beam behind headline */}
         <div className="hero-glow-beam" />
 
         {/* Hero Content Area with Flanking Stats */}
@@ -50,16 +57,25 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
           <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             {/* Left Flanking Stats (Desktop) */}
             <div className="hidden md:flex md:col-span-3 flex-col items-start space-y-10 pl-2">
-              <StatBlock
-                value={totalProblems}
-                label="Problems Logged"
-                align="left"
-              />
-              <StatBlock
-                value={topicsUnlocked}
-                label="Topics Unlocked"
-                align="left"
-              />
+              {isLoading ? (
+                <div className="space-y-10 w-full animate-pulse">
+                  <div className="h-14 bg-surface-2/60 rounded-xl w-32" />
+                  <div className="h-14 bg-surface-2/60 rounded-xl w-32" />
+                </div>
+              ) : (
+                <>
+                  <StatBlock
+                    value={totalProblems}
+                    label="Problems Logged"
+                    align="left"
+                  />
+                  <StatBlock
+                    value={topicsUnlocked}
+                    label="Topics Unlocked"
+                    align="left"
+                  />
+                </>
+              )}
             </div>
 
             {/* Center Hero Column */}
@@ -94,47 +110,77 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
                   See today's plan
                 </Button>
               </div>
+
+              {/* Empty First-Boot State Action */}
+              {!isLoading && totalProblems === 0 && (
+                <div className="pt-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Database className="w-3.5 h-3.5" />}
+                    onClick={handleLoadDemo}
+                    className="text-xs font-mono text-accent hover:border-accent"
+                  >
+                    Load demo data
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Right Flanking Stats (Desktop) */}
             <div className="hidden md:flex md:col-span-3 flex-col items-end space-y-10 pr-2">
-              <StatBlock
-                value={streak}
-                suffix="d"
-                label="Day Streak"
-                align="right"
-              />
-              <StatBlock
-                value={dueToday}
-                label="Due Today"
-                align="right"
-              />
+              {isLoading ? (
+                <div className="space-y-10 w-full animate-pulse flex flex-col items-end">
+                  <div className="h-14 bg-surface-2/60 rounded-xl w-32" />
+                  <div className="h-14 bg-surface-2/60 rounded-xl w-32" />
+                </div>
+              ) : (
+                <>
+                  <StatBlock
+                    value={streak}
+                    suffix="d"
+                    label="Day Streak"
+                    align="right"
+                  />
+                  <StatBlock
+                    value={dueToday}
+                    label="Due Today"
+                    align="right"
+                  />
+                </>
+              )}
             </div>
           </div>
 
           {/* Mobile Flanking Stats (2x2 Grid below CTAs at 375px - 768px) */}
           <div className="grid md:hidden grid-cols-2 gap-6 w-full max-w-sm mt-10 pt-6 border-t border-border/40">
-            <StatBlock
-              value={totalProblems}
-              label="Problems Logged"
-              align="center"
-            />
-            <StatBlock
-              value={topicsUnlocked}
-              label="Topics Unlocked"
-              align="center"
-            />
-            <StatBlock
-              value={streak}
-              suffix="d"
-              label="Day Streak"
-              align="center"
-            />
-            <StatBlock
-              value={dueToday}
-              label="Due Today"
-              align="center"
-            />
+            {isLoading ? (
+              <div className="col-span-2 h-20 bg-surface-2/40 rounded-xl animate-pulse" />
+            ) : (
+              <>
+                <StatBlock
+                  value={totalProblems}
+                  label="Problems Logged"
+                  align="center"
+                />
+                <StatBlock
+                  value={topicsUnlocked}
+                  label="Topics Unlocked"
+                  align="center"
+                />
+                <StatBlock
+                  value={streak}
+                  suffix="d"
+                  label="Day Streak"
+                  align="center"
+                />
+                <StatBlock
+                  value={dueToday}
+                  label="Due Today"
+                  align="center"
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -145,7 +191,7 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
 
           {/* Three Cards Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-4 items-center max-w-6xl mx-auto relative z-10 px-2">
-            {/* Left Card: Today's Plan (Tilted -4deg) */}
+            {/* Left Card: Today's Plan */}
             <div className="w-full max-w-md mx-auto lg:max-w-none">
               <TodaysPlanCard
                 planItems={plan}
@@ -153,12 +199,12 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
               />
             </div>
 
-            {/* Center Card: Topic Strength (Elevated Flat with 7-point line chart) */}
+            {/* Center Card: Topic Strength */}
             <div className="w-full max-w-md mx-auto lg:max-w-none">
-              <TopicStrengthCard score={94} label="Arrays & Hashing" />
+              <TopicStrengthCard score={totalProblems > 0 ? 94 : 0} label={totalProblems > 0 ? "Arrays & Hashing" : "Awaiting Data"} />
             </div>
 
-            {/* Right Card: Revision Timeline (Tilted +4deg with vertical NOW marker) */}
+            {/* Right Card: Revision Timeline */}
             <div className="w-full max-w-md mx-auto lg:max-w-none">
               <RevisionTimelineCard />
             </div>
@@ -182,4 +228,3 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
     </div>
   );
 };
-

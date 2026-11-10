@@ -109,5 +109,40 @@ describe('StatsEngine', () => {
     expect(ranking[1].topicId).toBe('strong');
     expect(ranking[2].topicId).toBe('untested');
   });
+
+  it('computes coverage matrix with distinct solved problems per topic and difficulty', () => {
+    const topics: Topic[] = [
+      { id: 'arrays', name: 'Arrays', prerequisites: [], importance_weight: 5 },
+      { id: 'dp', name: 'DP', prerequisites: ['arrays'], importance_weight: 5 },
+    ];
+    const problems: Problem[] = [
+      { id: 'p1', title: 'P1', platform: 'LC', difficulty: 'easy', topic_ids: ['arrays'], created_date: '2026-11-01' },
+      { id: 'p2', title: 'P2', platform: 'LC', difficulty: 'medium', topic_ids: ['arrays'], created_date: '2026-11-01' },
+      { id: 'p3', title: 'P3', platform: 'LC', difficulty: 'medium', topic_ids: ['arrays', 'dp'], created_date: '2026-11-01' },
+    ];
+    const attempts: Attempt[] = [
+      { id: 'a1', problem_id: 'p1', date: '2026-11-01', status: 'solved', time_taken: 10, mistake_tag: 'none', recall_quality: 5 },
+      { id: 'a2', problem_id: 'p1', date: '2026-11-02', status: 'solved', time_taken: 10, mistake_tag: 'none', recall_quality: 5 }, // Duplicate solved attempt
+      { id: 'a3', problem_id: 'p2', date: '2026-11-02', status: 'failed', time_taken: 10, mistake_tag: 'logic', recall_quality: 1 },
+      { id: 'a4', problem_id: 'p3', date: '2026-11-03', status: 'solved', time_taken: 20, mistake_tag: 'none', recall_quality: 4 },
+    ];
+
+    const matrix = StatsEngine.computeCoverageMatrix(topics, problems, attempts);
+    expect(matrix).toHaveLength(2);
+
+    const arrRow = matrix.find((r) => r.topic_id === 'arrays')!;
+    expect(arrRow.easy.solved).toBe(1); // p1 solved once (deduped across attempts)
+    expect(arrRow.easy.total).toBe(1);
+    expect(arrRow.medium.solved).toBe(1); // p3 solved
+    expect(arrRow.medium.total).toBe(2); // p2 and p3
+    expect(arrRow.hard.total).toBe(0);
+    expect(arrRow.total_solved).toBe(2);
+    expect(arrRow.total_problems).toBe(3);
+    expect(arrRow.mastery_percentage).toBe(67);
+
+    // Empty dataset test
+    const emptyMatrix = StatsEngine.computeCoverageMatrix([], [], []);
+    expect(emptyMatrix).toEqual([]);
+  });
 });
 

@@ -63,7 +63,6 @@ export class Planner {
   ): PlanItem[] {
     const statsMap = StatsEngine.computeTopicStats(topics, problems, attempts);
     const plan: PlanItem[] = [];
-    const usedTopicIds = new Set<string>();
 
     // 1. Determine unlocked topics
     const unlockedTopics = topics.filter((t) => {
@@ -102,44 +101,6 @@ export class Planner {
 
     const dueItems = dueQueue.getDueItems(today);
 
-    // Pop up to 3 due revisions
-    for (const item of dueItems) {
-      if (plan.length >= 3) break;
-      const probTopicId =
-        item.problem.topic_ids.find((tid) => unlockedTopicIds.has(tid)) ||
-        item.problem.topic_ids[0];
-      const topicObj = topics.find((t) => t.id === probTopicId) || topics[0];
-
-      const isLeech = item.revision.leech_flag;
-      const itemType = isLeech ? 'relearn' : 'due';
-      const reason = isLeech
-        ? `Quarantined leech (failed ${item.revision.failed_count} times). Relearn core patterns.`
-        : `Spaced revision due (rep ${item.revision.repetitions}, interval: ${item.revision.interval_days}d).`;
-
-      plan.push({
-        id: `plan-${itemType}-${item.problem.id}`,
-        problem: item.problem,
-        topic: topicObj,
-        type: itemType,
-        reason,
-      });
-      usedTopicIds.add(topicObj.id);
-    }
-
-    // 3. Priority Max-Heap over UNLOCKED topics
-    const topicPq = new PriorityQueue<{ topic: Topic; priority: number }>();
-    for (const t of unlockedTopics) {
-      const stat = statsMap.get(t.id)!;
-      const priority = Planner.computeTopicPriority(
-        t,
-        stat.weakness,
-        stat.lastAttemptDate,
-        today,
-        config
-      );
-      topicPq.enqueue({ topic: t, priority }, priority);
-    }
-
     // Candidate problems selector
     const getCandidatesForTopic = (topicId: string): Problem[] => {
       const topicProblems = problems.filter((p) =>
@@ -157,19 +118,72 @@ export class Planner {
       });
     };
 
+    // Helper to find representative unlocked topic for a problem
+    const getRepresentativeTopic = (prob: Problem): Topic => {
+      const probTopicId =
+        prob.topic_ids.find((tid) => unlockedTopicIds.has(tid)) ||
+        prob.topic_ids[0];
+      return topics.find((t) => t.id === probTopicId) || topics[0];
+    };
+
+    // Calculate all available topics across both due items and unlocked candidates
+    const availableTopicIds = new Set<string>();
+    for (const item of dueItems) {
+      availableTopicIds.add(getRepresentativeTopic(item.problem).id);
+    }
+    for (const t of unlockedTopics) {
+      if (getCandidatesForTopic(t.id).length > 0) {
+        availableTopicIds.add(t.id);
+      }
+    }
+    const canInterleaveStrictly = availableTopicIds.size >= 3;
+    const chosenTopicsInPlan = new Set<string>();
+
+    // Pop up to 3 due revisions (strictly enforcing interleaving across all items)
+    for (const item of dueItems) {
+      if (plan.length >= 3) break;
+      const topicObj = getRepresentativeTopic(item.problem);
+
+      if (canInterleaveStrictly && chosenTopicsInPlan.has(topicObj.id)) {
+        // Skip duplicate topic in due queue to maintain strict interleaving
+        continue;
+      }
+
+      const isLeech = item.revision.leech_flag;
+      const itemType = isLeech ? 'relearn' : 'due';
+      const reason = isLeech
+        ? `Quarantined leech (failed ${item.revision.failed_count} times). Relearn core patterns.`
+        : `Spaced revision due (rep ${item.revision.repetitions}, interval: ${item.revision.interval_days}d).`;
+
+      plan.push({
+        id: `plan-${itemType}-${item.problem.id}`,
+        problem: item.problem,
+        topic: topicObj,
+        type: itemType,
+        reason,
+      });
+      chosenTopicsInPlan.add(topicObj.id);
+    }
+
+    // 3. Priority Max-Heap over UNLOCKED topics
+    const topicPq = new PriorityQueue<{ topic: Topic; priority: number }>();
+    for (const t of unlockedTopics) {
+      const stat = statsMap.get(t.id)!;
+      const priority = Planner.computeTopicPriority(
+        t,
+        stat.weakness,
+        stat.lastAttemptDate,
+        today,
+        config
+      );
+      topicPq.enqueue({ topic: t, priority }, priority);
+    }
+
     // 4. Greedy Selection with Interleaving
-    // Interleaving rule: If >= 3 distinct unlocked topics with problems exist, no two plan items share a topic!
-    const availableTopicsWithProblems = unlockedTopics.filter(
-      (t) => getCandidatesForTopic(t.id).length > 0
-    );
-    const canInterleaveStrictly = availableTopicsWithProblems.length >= 3;
-
-    const chosenTopicsInPlan = [...plan.map((p) => p.topic.id)];
-
     while (!topicPq.isEmpty() && plan.length < config.maxPlanSize) {
       const { topic, priority } = topicPq.dequeue()!;
 
-      if (canInterleaveStrictly && chosenTopicsInPlan.includes(topic.id)) {
+      if (canInterleaveStrictly && chosenTopicsInPlan.has(topic.id)) {
         // Skip duplicate topic to maintain strict interleaving
         continue;
       }
@@ -190,12 +204,33 @@ export class Planner {
             stat.wilsonLowerBound * 100
           )}/100, priority: ${priority.toFixed(2)}).`,
         });
-        chosenTopicsInPlan.push(topic.id);
+        chosenTopicsInPlan.add(topic.id);
       }
     }
 
     // Backtrack relaxation: If plan is still below minPlanSize (3) because of strict interleaving, relax topic constraint
     if (plan.length < config.minPlanSize) {
+      // First check any skipped due revisions
+      for (const item of dueItems) {
+        if (plan.length >= config.minPlanSize) break;
+        if (!plan.some((pi) => pi.problem.id === item.problem.id)) {
+          const topicObj = getRepresentativeTopic(item.problem);
+          const isLeech = item.revision.leech_flag;
+          const itemType = isLeech ? 'relearn' : 'due';
+          const reason = isLeech
+            ? `Quarantined leech (failed ${item.revision.failed_count} times). Relearn core patterns.`
+            : `Spaced revision due (rep ${item.revision.repetitions}, interval: ${item.revision.interval_days}d).`;
+          plan.push({
+            id: `plan-${itemType}-${item.problem.id}`,
+            problem: item.problem,
+            topic: topicObj,
+            type: itemType,
+            reason,
+          });
+        }
+      }
+
+      // Then check candidate new problems
       for (const t of unlockedTopics) {
         if (plan.length >= config.minPlanSize) break;
         const candidates = getCandidatesForTopic(t.id);

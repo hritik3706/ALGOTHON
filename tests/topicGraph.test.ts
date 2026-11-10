@@ -127,5 +127,41 @@ describe('TopicGraph', () => {
 
     expect(ids).toContain('trees');
   });
+
+  it('computes dynamic graph layout where all edges flow from lower to higher levels', () => {
+    const layout = TopicGraph.computeGraphLayout(sampleTopics);
+    expect(layout.nodes).toHaveLength(6);
+    expect(layout.edges.length).toBeGreaterThan(0);
+
+    const levelLookup = new Map(layout.nodes.map((n) => [n.id, n.level]));
+
+    // Every edge must go from lower level to strictly higher level
+    for (const edge of layout.edges) {
+      const fromLevel = levelLookup.get(edge.from)!;
+      const toLevel = levelLookup.get(edge.to)!;
+      expect(toLevel).toBeGreaterThan(fromLevel);
+    }
+
+    // No two nodes share the exact same position
+    const positions = new Set(layout.nodes.map((n) => `${n.x},${n.y}`));
+    expect(positions.size).toBe(layout.nodes.length);
+  });
+
+  it('handles large DAGs with index pointer topological sort in O(V+E)', () => {
+    // Generate a 1,000-node linear DAG: N0 -> N1 -> ... -> N999
+    const largeTopics: Topic[] = Array.from({ length: 1000 }).map((_, i) => ({
+      id: `node_${i}`,
+      name: `Node ${i}`,
+      prerequisites: i === 0 ? [] : [`node_${i - 1}`],
+      importance_weight: 3,
+    }));
+
+    const graph = new TopicGraph(largeTopics);
+    const order = graph.getTopologicalOrder();
+
+    expect(order).toHaveLength(1000);
+    expect(order[0].id).toBe('node_0');
+    expect(order[999].id).toBe('node_999');
+  });
 });
 

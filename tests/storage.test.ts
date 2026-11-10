@@ -164,5 +164,21 @@ describe('Storage', () => {
     const quarantined = files.some((f) => f.includes('corrupt_'));
     expect(quarantined).toBe(true);
   });
+
+  it('boots completely empty on first boot and populates on loadDemoData()', () => {
+    const adapter = new FileStorageAdapter(testDir);
+    const storage = new Storage(adapter);
+
+    // Initial first boot must have zero problems, attempts, and revisions
+    expect(storage.getProblems()).toHaveLength(0);
+    expect(storage.getAttempts()).toHaveLength(0);
+    expect(storage.getRevisions()).toHaveLength(0);
+
+    // Explicit loadDemoData() populates sample data
+    storage.loadDemoData();
+    expect(storage.getProblems().length).toBeGreaterThan(0);
+    expect(storage.getAttempts().length).toBeGreaterThan(0);
+    expect(storage.getRevisions().length).toBeGreaterThan(0);
+  });
 });
 

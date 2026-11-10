@@ -1,15 +1,39 @@
 import { FC, useEffect, useState } from 'react';
 import { Card } from '../../components/common/Card';
 import { Pill } from '../../components/common/Pill';
-import { getInsights, InsightSummary } from '../../api';
+import { getInsights, getCoverageMatrix, InsightSummary, TopicCoverageRow } from '../../api';
 import { AlertTriangle, TrendingUp, BarChart2, CheckCircle2 } from 'lucide-react';
 
 export const InsightsScreen: FC = () => {
   const [insights, setInsights] = useState<InsightSummary | null>(null);
+  const [coverageRows, setCoverageRows] = useState<TopicCoverageRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getInsights().then(setInsights);
+    let mounted = true;
+    Promise.all([getInsights(), getCoverageMatrix()]).then(([ins, matrix]) => {
+      if (mounted) {
+        setInsights(ins);
+        setCoverageRows(matrix);
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  const streak = insights?.streak ?? 0;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 max-w-5xl mx-auto pb-16 animate-pulse">
+        <div className="h-12 bg-surface-2/60 rounded-xl w-2/3" />
+        <div className="h-48 bg-surface-2/40 rounded-xl" />
+        <div className="h-64 bg-surface-2/40 rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-16">
@@ -64,7 +88,7 @@ export const InsightsScreen: FC = () => {
         </Card>
       )}
 
-      {/* Weak-Topic Ranking via Wilson Score Lower Bound */}
+      {/* Weak Topics Ranking (Wilson Lower Bound) */}
       <Card className="p-6 bg-surface space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h3 className="font-ui text-base font-semibold text-fg flex items-center gap-2">
@@ -77,56 +101,62 @@ export const InsightsScreen: FC = () => {
         </div>
 
         <div className="space-y-3">
-          {(insights?.weak_topics ?? []).map((ts, idx) => (
-            <div
-              key={ts.topic.id}
-              className="p-3.5 rounded-xl bg-surface-2/40 border border-border/40 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-xs w-6 text-fg-faint font-bold">
-                  #{idx + 1}
-                </span>
-                <div>
-                  <div className="font-ui text-sm font-semibold text-fg">
-                    {ts.topic.name}
-                  </div>
-                  <div className="font-mono text-[11px] text-fg-faint">
-                    {ts.attempts} attempts • {Math.round(ts.success_rate * 100)}% raw solve rate
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="font-display text-xl text-fg leading-none">
-                    {ts.strength}
-                    <span className="text-xs font-display text-fg-faint">/100</span>
-                  </div>
-                  <div className="font-mono text-[10px] text-fg-faint mt-0.5">
-                    Wilson Score
-                  </div>
-                </div>
-                {ts.strength >= 70 ? (
-                  <Pill variant="done" size="sm">Solid</Pill>
-                ) : ts.strength >= 40 ? (
-                  <Pill variant="neutral" size="sm">Moderate</Pill>
-                ) : (
-                  <Pill variant="failed" size="sm">Weak</Pill>
-                )}
-              </div>
+          {(insights?.weak_topics ?? []).length === 0 ? (
+            <div className="py-6 text-center font-mono text-xs text-fg-faint">
+              No topic attempts logged yet.
             </div>
-          ))}
+          ) : (
+            (insights?.weak_topics ?? []).map((ts, idx) => (
+              <div
+                key={ts.topic.id}
+                className="p-3.5 rounded-xl bg-surface-2/40 border border-border/40 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-xs w-6 text-fg-faint font-bold">
+                    #{idx + 1}
+                  </span>
+                  <div>
+                    <div className="font-ui text-sm font-semibold text-fg">
+                      {ts.topic.name}
+                    </div>
+                    <div className="font-mono text-[11px] text-fg-faint">
+                      {ts.attempts} attempts • {Math.round(ts.success_rate * 100)}% raw solve rate
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="font-display text-xl text-fg leading-none">
+                      {ts.strength}
+                      <span className="text-xs font-display text-fg-faint">/100</span>
+                    </div>
+                    <div className="font-mono text-[10px] text-fg-faint mt-0.5">
+                      Wilson Score
+                    </div>
+                  </div>
+                  {ts.strength >= 70 ? (
+                    <Pill variant="done" size="sm">Solid</Pill>
+                  ) : ts.strength >= 40 ? (
+                    <Pill variant="neutral" size="sm">Moderate</Pill>
+                  ) : (
+                    <Pill variant="failed" size="sm">Weak</Pill>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </Card>
 
-      {/* Topic x Difficulty Matrix (Spec: B6/Phase 1) */}
+      {/* Dynamic Topic x Difficulty Coverage Matrix */}
       <Card className="p-6 bg-surface space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h3 className="font-ui text-base font-semibold text-fg flex items-center gap-2">
             <BarChart2 className="w-4 h-4 text-accent" />
             Topic × Difficulty Coverage Matrix
           </h3>
-          <span className="font-mono text-xs text-fg-faint">Problem counts</span>
+          <span className="font-mono text-xs text-fg-faint">Distinct problems solved / total</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -141,48 +171,62 @@ export const InsightsScreen: FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/20 text-fg-muted">
-              <tr>
-                <td className="py-3 px-3 font-semibold text-fg">Arrays & Hashing</td>
-                <td className="py-3 px-3 text-center text-accent">3 solved</td>
-                <td className="py-3 px-3 text-center text-accent">4 solved</td>
-                <td className="py-3 px-3 text-center text-fg-faint">0</td>
-                <td className="py-3 px-3 text-right text-accent font-bold">94%</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-3 font-semibold text-fg">Two Pointers</td>
-                <td className="py-3 px-3 text-center text-accent">2 solved</td>
-                <td className="py-3 px-3 text-center text-accent">3 solved</td>
-                <td className="py-3 px-3 text-center text-fg-faint">0</td>
-                <td className="py-3 px-3 text-right text-accent font-bold">78%</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-3 font-semibold text-fg">Binary Search</td>
-                <td className="py-3 px-3 text-center text-accent">1 solved</td>
-                <td className="py-3 px-3 text-center text-fg-faint">0</td>
-                <td className="py-3 px-3 text-center text-fg-faint">0</td>
-                <td className="py-3 px-3 text-right text-fg-muted font-bold">45%</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-3 font-semibold text-fg">Stacks & Queues</td>
-                <td className="py-3 px-3 text-center text-accent">1 solved</td>
-                <td className="py-3 px-3 text-center text-accent">4 solved</td>
-                <td className="py-3 px-3 text-center text-fg-faint">0</td>
-                <td className="py-3 px-3 text-right text-accent font-bold">82%</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-3 font-semibold text-fg">Trees & Graphs</td>
-                <td className="py-3 px-3 text-center text-accent">1 solved</td>
-                <td className="py-3 px-3 text-center text-danger">2 failed</td>
-                <td className="py-3 px-3 text-center text-fg-faint">0</td>
-                <td className="py-3 px-3 text-right text-danger font-bold">33% (Locked)</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-3 font-semibold text-fg">Dynamic Programming</td>
-                <td className="py-3 px-3 text-center text-accent">1 solved</td>
-                <td className="py-3 px-3 text-center text-danger">1 leech</td>
-                <td className="py-3 px-3 text-center text-fg-faint">0</td>
-                <td className="py-3 px-3 text-right text-fg-muted font-bold">50%</td>
-              </tr>
+              {coverageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-fg-faint">
+                    No topic coverage data available.
+                  </td>
+                </tr>
+              ) : (
+                coverageRows.map((row) => (
+                  <tr key={row.topic_id}>
+                    <td className="py-3 px-3 font-semibold text-fg flex items-center gap-2">
+                      <span>{row.topic_name}</span>
+                      {!row.is_unlocked && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-danger/10 text-danger border border-danger/20">
+                          Locked
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {row.easy.total > 0 ? (
+                        <span className={row.easy.solved > 0 ? 'text-accent font-semibold' : 'text-fg-faint'}>
+                          {row.easy.solved} / {row.easy.total}
+                        </span>
+                      ) : (
+                        <span className="text-fg-faint">0</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {row.medium.total > 0 ? (
+                        <span className={row.medium.solved > 0 ? 'text-accent font-semibold' : 'text-fg-faint'}>
+                          {row.medium.solved} / {row.medium.total}
+                        </span>
+                      ) : (
+                        <span className="text-fg-faint">0</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {row.hard.total > 0 ? (
+                        <span className={row.hard.solved > 0 ? 'text-accent font-semibold' : 'text-fg-faint'}>
+                          {row.hard.solved} / {row.hard.total}
+                        </span>
+                      ) : (
+                        <span className="text-fg-faint">0</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      {row.total_problems > 0 ? (
+                        <span className={`font-bold ${row.mastery_percentage >= 70 ? 'text-accent' : row.mastery_percentage >= 40 ? 'text-fg' : 'text-fg-muted'}`}>
+                          {row.mastery_percentage}%
+                        </span>
+                      ) : (
+                        <span className="text-fg-faint">0%</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -194,7 +238,7 @@ export const InsightsScreen: FC = () => {
           <div className="flex items-center gap-2 text-accent">
             <CheckCircle2 className="w-5 h-5" />
             <h4 className="font-ui text-base font-semibold text-fg">
-              {insights?.streak ?? 5} Consecutive Practice Days
+              {streak} Consecutive Practice Days
             </h4>
           </div>
           <p className="font-mono text-xs text-fg-muted">
@@ -202,10 +246,9 @@ export const InsightsScreen: FC = () => {
           </p>
         </div>
         <div className="font-display text-4xl text-accent font-normal shrink-0">
-          {insights?.streak ?? 5}d <span className="font-display text-xl text-fg-faint">streak</span>
+          {streak}d <span className="font-display text-xl text-fg-faint">streak</span>
         </div>
       </Card>
     </div>
   );
 };
-

@@ -1,10 +1,20 @@
-import { FC, useEffect, useState } from 'react';
-import { getPlan, getDueRevisions, getInsights, PlanItem, Revision, Problem, Topic, InsightSummary } from '../../api';
+import { FC, useEffect, useState, useCallback } from 'react';
+import {
+  getPlan,
+  getDueRevisions,
+  getInsights,
+  loadDemoData,
+  PlanItem,
+  Revision,
+  Problem,
+  Topic,
+  InsightSummary,
+} from '../../api';
 import { Card } from '../../components/common/Card';
 import { Pill } from '../../components/common/Pill';
 import { Button } from '../../components/common/Button';
 import { EmptyState } from '../../components/common/EmptyState';
-import { PlusCircle, Flame, Clock, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Flame, Clock, CheckCircle2, Database } from 'lucide-react';
 
 interface TodayScreenProps {
   onNavigateToLog: (problemTitle?: string, topicId?: string) => void;
@@ -12,22 +22,51 @@ interface TodayScreenProps {
 
 export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
   const [plan, setPlan] = useState<PlanItem[]>([]);
-  const [dueRevisions, setDueRevisions] = useState<{ problem: Problem; revision: Revision; topic?: Topic }[]>([]);
+  const [dueRevisions, setDueRevisions] = useState<
+    { problem: Problem; revision: Revision; topic?: Topic }[]
+  >([]);
   const [insights, setInsights] = useState<InsightSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const loadData = () => {
-    Promise.all([getPlan(), getDueRevisions(), getInsights()]).then(
+  const loadData = useCallback(() => {
+    return Promise.all([getPlan(), getDueRevisions(), getInsights()]).then(
       ([p, due, ins]) => {
         setPlan(p);
         setDueRevisions(due);
         setInsights(ins);
+        setIsLoading(false);
       }
     );
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
+
+  const handleLoadDemo = async () => {
+    setIsLoading(true);
+    await loadDemoData();
+    await loadData();
+  };
+
+  const streak = insights?.streak ?? 0;
+  const totalProblems = insights?.total_problems ?? 0;
+  const topicsUnlocked = insights?.topics_unlocked ?? 0;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 max-w-5xl mx-auto pb-16 animate-pulse">
+        <div className="h-14 bg-surface-2/60 rounded-xl w-1/2" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="h-20 bg-surface-2/40 rounded-xl" />
+          <div className="h-20 bg-surface-2/40 rounded-xl" />
+          <div className="h-20 bg-surface-2/40 rounded-xl" />
+          <div className="h-20 bg-surface-2/40 rounded-xl" />
+        </div>
+        <div className="h-64 bg-surface-2/40 rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-16">
@@ -59,7 +98,7 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
           </div>
           <div>
             <div className="font-display text-2xl text-fg leading-none">
-              {insights?.streak ?? 5} <span className="text-accent text-sm font-display">days</span>
+              {streak} <span className="text-accent text-sm font-display">days</span>
             </div>
             <div className="font-mono text-[10px] text-fg-faint uppercase tracking-wider mt-1">
               Active Streak
@@ -87,7 +126,7 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
           </div>
           <div>
             <div className="font-display text-2xl text-fg leading-none">
-              {insights?.total_problems ?? 32}
+              {totalProblems}
             </div>
             <div className="font-mono text-[10px] text-fg-faint uppercase tracking-wider mt-1">
               Logged Problems
@@ -101,7 +140,7 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
           </div>
           <div>
             <div className="font-display text-2xl text-fg leading-none">
-              {insights?.topics_unlocked ?? 8} <span className="text-fg-faint text-sm font-display">/ 10</span>
+              {topicsUnlocked} <span className="text-fg-faint text-sm font-display">/ 10</span>
             </div>
             <div className="font-mono text-[10px] text-fg-faint uppercase tracking-wider mt-1">
               Topics Unlocked
@@ -113,39 +152,65 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
       {/* Main Recommended Plan */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-ui text-sm font-semibold uppercase tracking-wider text-fg-muted flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-accent" />
-            Interleaved Plan for Today ({plan.length} items)
-          </h2>
-          <span className="font-mono text-xs text-fg-faint">
-            No adjacent duplicate topics
+          <div>
+            <h2 className="font-ui text-lg font-semibold text-fg">
+              Recommended Today
+            </h2>
+            <p className="font-mono text-xs text-fg-faint">
+              Greedy interleaving with weakness and staleness weighting
+            </p>
+          </div>
+          <span className="font-mono text-xs px-2.5 py-1 rounded-full bg-surface-2 text-fg-muted border border-border">
+            {plan.length} items planned
           </span>
         </div>
 
         {plan.length === 0 ? (
           <EmptyState
-            title="All caught up!"
-            description="You have completed all planned items. Log a new problem to expand your DAG frontier."
-            actionLabel="Log a problem"
-            onAction={() => onNavigateToLog()}
-          />
+            title="No problems currently in your plan"
+            description={
+              totalProblems === 0
+                ? "Your practice store is currently empty. Log your first solved problem, or load sample demo data to explore the planner and graph."
+                : "All due revisions and high-priority practice items are completed for today. Great job keeping your practice queue clear!"
+            }
+          >
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<PlusCircle className="w-4 h-4" />}
+                onClick={() => onNavigateToLog()}
+              >
+                Log your first attempt
+              </Button>
+              {totalProblems === 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Database className="w-4 h-4" />}
+                  onClick={handleLoadDemo}
+                >
+                  Load demo data
+                </Button>
+              )}
+            </div>
+          </EmptyState>
         ) : (
           <div className="space-y-3">
             {plan.map((item, index) => {
-              const diffBadge =
-                item.problem.difficulty === 'easy' ? (
-                  <span className="px-2 py-0.5 rounded bg-accent/15 text-accent font-mono text-[11px] font-bold">
-                    Easy
-                  </span>
-                ) : item.problem.difficulty === 'hard' ? (
-                  <span className="px-2 py-0.5 rounded bg-danger/15 text-danger font-mono text-[11px] font-bold">
-                    Hard
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded bg-surface-2 text-fg-muted border border-border font-mono text-[11px] font-bold">
-                    Medium
-                  </span>
-                );
+              const diffBadge = (
+                <span
+                  className={`font-mono text-[10px] uppercase font-semibold px-2 py-0.5 rounded ${
+                    item.problem.difficulty === 'easy'
+                      ? 'bg-accent/15 text-accent'
+                      : item.problem.difficulty === 'medium'
+                      ? 'bg-yellow-500/15 text-yellow-400'
+                      : 'bg-danger/15 text-danger'
+                  }`}
+                >
+                  {item.problem.difficulty}
+                </span>
+              );
 
               const statusPill =
                 item.type === 'due' ? (
@@ -251,7 +316,7 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
               Last 7 Days Practice
             </h3>
             <span className="font-mono text-xs text-accent">
-              {insights?.streak ?? 5}d Streak Active
+              {streak}d Streak Active
             </span>
           </div>
 
@@ -286,4 +351,3 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
     </div>
   );
 };
-

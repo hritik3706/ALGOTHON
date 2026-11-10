@@ -90,6 +90,47 @@ export interface DailyActivity {
   solved_count: number;
 }
 
+export interface CoverageCell {
+  solved: number;
+  total: number;
+}
+
+export interface TopicCoverageRow {
+  topic_id: string;
+  topic_name: string;
+  easy: CoverageCell;
+  medium: CoverageCell;
+  hard: CoverageCell;
+  total_solved: number;
+  total_problems: number;
+  mastery_percentage: number;
+  is_unlocked: boolean;
+}
+
+export interface GraphLayoutNode {
+  id: string;
+  name: string;
+  level: number;
+  indexInLevel: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  parentIds: string[];
+}
+
+export interface GraphLayoutEdge {
+  from: string;
+  to: string;
+}
+
+export interface GraphLayoutResult {
+  nodes: GraphLayoutNode[];
+  edges: GraphLayoutEdge[];
+  width: number;
+  height: number;
+}
+
 export interface InsightSummary {
   weak_topics: TopicSummary[];
   avoided_topics: AvoidanceInsight[];

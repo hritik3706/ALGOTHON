@@ -9,6 +9,8 @@ import {
   Revision,
   InsightSummary,
   Attempt,
+  TopicCoverageRow,
+  GraphLayoutResult,
 } from '../types';
 
 export * from '../types';
@@ -68,10 +70,23 @@ export async function getInsights(today?: string): Promise<InsightSummary> {
   return Promise.resolve(storeManager.getInsights(today));
 }
 
+export async function getCoverageMatrix(): Promise<TopicCoverageRow[]> {
+  return Promise.resolve(storeManager.getCoverageMatrix());
+}
+
+export async function getGraphLayout(): Promise<GraphLayoutResult> {
+  return Promise.resolve(storeManager.getGraphLayout());
+}
+
 export function subscribeToStore(listener: () => void): () => void {
   return storeManager.subscribe(listener);
 }
 
 export function resetToSampleData(): void {
   storeManager.resetToSampleData();
+}
+
+export async function loadDemoData(): Promise<void> {
+  storeManager.loadDemoData();
+  return Promise.resolve();
 }

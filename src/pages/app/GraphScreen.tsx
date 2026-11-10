@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { Card } from '../../components/common/Card';
 import { Pill } from '../../components/common/Pill';
 import { Button } from '../../components/common/Button';
-import { getTopics, TopicSummary } from '../../api';
+import { getTopics, getGraphLayout, TopicSummary, GraphLayoutResult } from '../../api';
 import { Lock, Unlock, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface TreeNode {
@@ -20,58 +20,39 @@ export const GraphScreen: FC<{ onLogTopic?: (topicId: string) => void }> = ({
   onLogTopic,
 }) => {
   const [topics, setTopics] = useState<TopicSummary[]>([]);
+  const [layout, setLayout] = useState<GraphLayoutResult | null>(null);
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
 
   useEffect(() => {
-    getTopics().then((res) => {
-      setTopics(res);
+    Promise.all([getTopics(), getGraphLayout()]).then(([resTopics, resLayout]) => {
+      setTopics(resTopics);
+      setLayout(resLayout);
     });
   }, []);
 
-  const nodeWidth = 150;
-  const nodeHeight = 56;
-  const svgWidth = 860;
-  const svgHeight = 580;
-
-  // Node Positions designed in tree hierarchy matching the reference image:
-  // Layer 0: Arrays (top center)
-  // Layer 1: Two Pointers (left), Stacks & Queues (center), Hashing (right)
-  // Layer 2: Binary Search (left), Recursion (center), Sliding Window / Two Pointers
-  // Layer 3: Trees (center)
-  // Layer 4: Graphs (left), Backtracking (center), Dynamic Programming (right)
-  const layoutCoords: Record<string, { x: number; y: number; parents: string[] }> = {
-    arrays: { x: 430, y: 50, parents: [] },
-    two_pointers: { x: 230, y: 150, parents: ['arrays'] },
-    stacks_queues: { x: 430, y: 150, parents: ['arrays'] },
-    hashing: { x: 630, y: 150, parents: ['arrays'] },
-    binary_search: { x: 230, y: 260, parents: ['arrays'] },
-    recursion: { x: 430, y: 260, parents: ['arrays'] },
-    trees: { x: 430, y: 370, parents: ['recursion', 'stacks_queues'] },
-    backtracking: { x: 630, y: 370, parents: ['recursion'] },
-    graphs: { x: 280, y: 480, parents: ['trees', 'hashing'] },
-    dp: { x: 580, y: 480, parents: ['backtracking'] },
-  };
+  const svgWidth = layout?.width || 860;
+  const svgHeight = layout?.height || 580;
 
   const topicMap = new Map(topics.map((t) => [t.topic.id, t]));
 
-  const nodes: TreeNode[] = Object.entries(layoutCoords).map(([id, info]) => {
-    const summary = topicMap.get(id) || {
-      topic: { id, name: id, prerequisites: info.parents, importance_weight: 4 },
+  const nodes: TreeNode[] = (layout?.nodes || []).map((info) => {
+    const summary = topicMap.get(info.id) || {
+      topic: { id: info.id, name: info.name, prerequisites: info.parentIds, importance_weight: 4 },
       strength: 0,
       attempts: 0,
       success_rate: 0,
-      is_unlocked: info.parents.length === 0,
+      is_unlocked: info.parentIds.length === 0,
       trend: 'insufficient_data' as const,
     };
 
     return {
-      id,
+      id: info.id,
       name: summary.topic.name,
       x: info.x,
       y: info.y,
-      width: nodeWidth,
-      height: nodeHeight,
-      parentIds: info.parents,
+      width: info.width,
+      height: info.height,
+      parentIds: info.parentIds,
       summary,
     };
   });

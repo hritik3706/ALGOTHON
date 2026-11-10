@@ -68,6 +68,35 @@ describe('Planner', () => {
     expect(uniqueTopics.size).toBe(plannedTopicIds.length);
   });
 
+  it('ensures no duplicate topics across all plan items including due revisions', () => {
+    const graph = new TopicGraph(topics);
+    // Add two due revisions that both belong to 'arrays'
+    const extraProblems: Problem[] = [
+      ...problems,
+      { id: 'p_arr_2', title: 'Contains Duplicate', platform: 'LC', difficulty: 'easy', topic_ids: ['arrays'], created_date: '2026-11-01' },
+    ];
+    const dueRevisionsSameTopic: Revision[] = [
+      { problem_id: 'p_arr', next_due_date: '2026-11-10', interval_index: 1, interval_days: 1, ease_factor: 2.5, repetitions: 1, failed_count: 0, leech_flag: false },
+      { problem_id: 'p_arr_2', next_due_date: '2026-11-10', interval_index: 1, interval_days: 1, ease_factor: 2.5, repetitions: 1, failed_count: 0, leech_flag: false },
+    ];
+
+    const plan = Planner.generatePlan(
+      '2026-11-10',
+      topics,
+      extraProblems,
+      attempts,
+      dueRevisionsSameTopic,
+      graph
+    );
+
+    const plannedTopicIds = plan.map((pi) => pi.topic.id);
+    const uniqueTopics = new Set(plannedTopicIds);
+
+    expect(plan.length).toBeGreaterThanOrEqual(3);
+    // With 3 topics available (arrays, two_pointers, trees), no duplicate topics in plan:
+    expect(uniqueTopics.size).toBe(plannedTopicIds.length);
+  });
+
   it('keeps plan size between 3 and 5 items when data allows', () => {
     const graph = new TopicGraph(topics);
     const plan = Planner.generatePlan(
