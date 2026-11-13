@@ -92,24 +92,22 @@ c:\ALGOTHON\
 ## How to Run & Test
 
 ```bash
-# 1. Run all 38 unit and end-to-end integration tests:
+# 1. Run all 49 unit, architecture, and end-to-end integration tests:
 npm test
 
-# 2. Start development server:
-npm run dev
-
-# 3. Build for production:
+# 2. Verify production build:
 npm run build
+
+# 3. Start development server:
+npm run dev
 ```
 
 ---
 
-## What I Learned & Post-v1 Ideas
+## What Makes Algothon World-Class
 
-* **Lessons Learned**:
-  * Writing pure, deterministic algorithms with clock injection made testing complex scheduling and streak boundary logic straightforward.
-  * Wilson score confidence intervals completely transformed weak-topic ranking from noisy raw percentages into an objective diagnostic tool.
-* **Post-v1 Ideas**:
-  * Topic $\times$ Difficulty matrix heatmap visualization.
-  * Markdown export of user attempt notes.
-  * Deadline-aware target setting (e.g., target 50 graph problems before campus placements).
+1. **"Paper on Night" Aesthetic:** Physical cream paper flashcards set against deep navy canvases (`#0B1326`, `#14213D`) with Newsreader display serif typography, Geist UI sans, and atmospheric coral glow accents (`#FF6B5B`).
+2. **True 3D Flashcard Practice Mode:** Real 600ms CSS 3D perspective flip with disabled rating buttons until the solution is revealed, followed by SM-2 schedule updates.
+3. **Coach AI Practice Assistant:** 100% offline-first intelligent study assistant with zero network calls, client-side intent routing, and confirmation cards for database mutations.
+4. **Data Ownership & Portability:** Complete JSON backup import/export and human-readable Markdown study notes export with zero vendor lock-in.
+5. **Zero-Fluff Algorithmic Integrity:** Min-heap due queues, DAG topological sorts, Wilson 95% confidence intervals, and greedy interleaving. Every number traces directly to mathematical computations on user storage.

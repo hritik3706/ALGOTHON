@@ -180,5 +180,53 @@ describe('Storage', () => {
     expect(storage.getAttempts().length).toBeGreaterThan(0);
     expect(storage.getRevisions().length).toBeGreaterThan(0);
   });
+
+  it('exports and imports JSON with complete round-trip fidelity', () => {
+    const adapter = new FileStorageAdapter(testDir);
+    const storage = new Storage(adapter);
+    storage.loadDemoData();
+
+    const originalProblemCount = storage.getProblems().length;
+    const originalAttemptCount = storage.getAttempts().length;
+
+    // Export to JSON
+    const exportedJSON = storage.exportJSON();
+    expect(typeof exportedJSON).toBe('string');
+    expect(exportedJSON).toContain('"schema_version": 1');
+
+    // Create a new storage and import
+    const newDir = path.join(testDir, 'import_test');
+    const newAdapter = new FileStorageAdapter(newDir);
+    const newStorage = new Storage(newAdapter);
+    expect(newStorage.getProblems()).toHaveLength(0);
+
+    const result = newStorage.importJSON(exportedJSON);
+    expect(result.importedProblems).toBe(originalProblemCount);
+    expect(result.importedAttempts).toBe(originalAttemptCount);
+    expect(newStorage.getProblems().length).toBe(originalProblemCount);
+  });
+
+  it('exports study notes to Markdown formatted by topic', () => {
+    const adapter = new FileStorageAdapter(testDir);
+    const storage = new Storage(adapter);
+    storage.loadDemoData();
+
+    const markdown = storage.exportMarkdown();
+    expect(markdown).toContain('# Algothon Practice & Study Notes');
+    expect(markdown).toContain('## Problem Summary');
+    expect(markdown).toContain('Two Sum');
+  });
+
+  it('clearAllData() resets store to zero problems while persisting', () => {
+    const adapter = new FileStorageAdapter(testDir);
+    const storage = new Storage(adapter);
+    storage.loadDemoData();
+    expect(storage.getProblems().length).toBeGreaterThan(0);
+
+    storage.clearAllData();
+    expect(storage.getProblems()).toHaveLength(0);
+    expect(storage.getAttempts()).toHaveLength(0);
+    expect(storage.getRevisions()).toHaveLength(0);
+  });
 });
 

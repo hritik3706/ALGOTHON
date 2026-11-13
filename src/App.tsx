@@ -10,7 +10,19 @@ export const App: FC = () => {
   const [targetAppScreen, setTargetAppScreen] = useState<AppScreenId>('today');
 
   const handleNavigateToApp = (screen?: string) => {
-    if (screen && ['today', 'log', 'topics', 'graph', 'revisions', 'insights'].includes(screen)) {
+    const validScreens: AppScreenId[] = [
+      'today',
+      'review',
+      'log',
+      'problems',
+      'mistakes',
+      'topics',
+      'graph',
+      'revisions',
+      'insights',
+      'settings',
+    ];
+    if (screen && validScreens.includes(screen as AppScreenId)) {
       setTargetAppScreen(screen as AppScreenId);
     } else {
       setTargetAppScreen('today');

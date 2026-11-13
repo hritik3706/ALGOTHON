@@ -100,3 +100,25 @@ export async function loadDemoData(): Promise<void> {
   storeManager.loadDemoData();
   return Promise.resolve();
 }
+
+export function exportDataJSON(): string {
+  return storeManager.exportJSON();
+}
+
+export function exportNotesMarkdown(): string {
+  return storeManager.exportMarkdown();
+}
+
+export function importDataJSON(jsonStr: string): { importedProblems: number; importedAttempts: number } {
+  return storeManager.importJSON(jsonStr);
+}
+
+export function clearAllData(): void {
+  storeManager.clearAllData();
+}
+
+export type { CoachResponse, ProposedAction } from '../core/coach/CoachEngine';
+
+export async function askCoach(query: string, currentTopicId?: string) {
+  return storeManager.askCoach(query, currentTopicId);
+}

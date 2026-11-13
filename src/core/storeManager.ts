@@ -5,6 +5,7 @@ import { StatsEngine } from './stats/StatsEngine';
 import { RevisionScheduler } from './scheduler/RevisionScheduler';
 import { Planner } from './planner/Planner';
 import { InsightsEngine } from './stats/Insights';
+import { CoachEngine, CoachResponse } from './coach/CoachEngine';
 import {
   Topic,
   Problem,
@@ -375,6 +376,26 @@ class StoreManager {
   /**
    * Demo Support: Reload sample dataset
    */
+  public async askCoach(query: string, currentTopicId?: string): Promise<CoachResponse> {
+    return CoachEngine.answerQuery(query, currentTopicId);
+  }
+
+  public exportJSON(): string {
+    return this.storage.exportJSON();
+  }
+
+  public exportMarkdown(): string {
+    return this.storage.exportMarkdown();
+  }
+
+  public importJSON(jsonStr: string): { importedProblems: number; importedAttempts: number } {
+    return this.storage.importJSON(jsonStr);
+  }
+
+  public clearAllData(): void {
+    this.storage.clearAllData();
+  }
+
   public loadDemoData(): void {
     this.storage.loadDemoData();
   }

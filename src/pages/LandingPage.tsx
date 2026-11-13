@@ -131,6 +131,16 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
                 >
                   See today's plan
                 </Button>
+                {dueToday > 0 && (
+                  <Button
+                    size="md"
+                    variant="secondary"
+                    onClick={() => onNavigateToApp('review')}
+                    className="px-6 text-accent border-accent/40 hover:bg-accent/15"
+                  >
+                    Flashcard review ({dueToday})
+                  </Button>
+                )}
               </div>
 
               {/* Empty First-Boot State Action */}

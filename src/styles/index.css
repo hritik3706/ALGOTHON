@@ -3,19 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0B0B0C;
-  --fg: #FFFFFF;
-  --accent: #C6F432;
-  --surface: #121214;
-  --surface-2: #17171A;
-  --border: rgba(255, 255, 255, 0.08);
-  --fg-muted: rgba(255, 255, 255, 0.60);
-  --fg-faint: rgba(255, 255, 255, 0.38);
-  --accent-ink: #0B0B0C;
-  --accent-glow: rgba(198, 244, 50, 0.35);
-  --danger: #E5604D;
-  --font-display: "Instrument Serif", Georgia, serif;
-  --font-ui: "Inter", system-ui, sans-serif;
+  --bg: #0B1326;
+  --canvas-2: #14213D;
+  --fg: #F4EDE0;
+  --surface: #171F33;
+  --surface-2: #222A3E;
+  --card-paper: #F4EDE0;
+  --card-paper-ink: #14213D;
+  --accent: #FF6B5B;
+  --accent-hover: #E55A4A;
+  --accent-ink: #0B1326;
+  --accent-glow: rgba(255, 107, 91, 0.35);
+  --border: rgba(244, 237, 224, 0.12);
+  --fg-muted: rgba(244, 237, 224, 0.65);
+  --fg-faint: rgba(244, 237, 224, 0.35);
+  --danger: #FF6B5B;
+  --font-display: "Newsreader", "Instrument Serif", Georgia, serif;
+  --font-ui: "Geist", "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   color-scheme: dark;
 }
@@ -50,7 +54,7 @@ body {
   }
 }
 
-/* Hero vertical luminous glow beam matching the reference screenshot */
+/* Hero vertical luminous coral glow beam */
 .hero-glow-beam {
   position: absolute;
   top: 5%;
@@ -63,9 +67,9 @@ body {
   z-index: 0;
   background: radial-gradient(
     ellipse 65% 50% at 50% 60%,
-    rgba(198, 244, 50, 0.28) 0%,
-    rgba(198, 244, 50, 0.12) 45%,
-    rgba(198, 244, 50, 0.04) 65%,
+    rgba(255, 107, 91, 0.25) 0%,
+    rgba(255, 107, 91, 0.10) 45%,
+    rgba(255, 107, 91, 0.03) 65%,
     transparent 80%
   );
   filter: blur(40px);
@@ -84,10 +88,34 @@ body {
   z-index: 0;
   background: radial-gradient(
     ellipse 60% 40% at 50% 80%,
-    rgba(198, 244, 50, 0.16) 0%,
+    rgba(255, 107, 91, 0.16) 0%,
     transparent 70%
   );
   filter: blur(50px);
+}
+
+/* 3D Flashcard flip utility classes */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Paper texture subtle lines */
+.paper-lines {
+  background-image: linear-gradient(rgba(20, 33, 61, 0.08) 1px, transparent 1px);
+  background-size: 100% 28px;
 }
 
 /* Card tilts matching reference */
@@ -109,7 +137,7 @@ body {
 
 .card-center-elevated {
   transform: scale(1.04);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(198, 244, 50, 0.18);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(255, 107, 91, 0.22);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .card-center-elevated:hover {

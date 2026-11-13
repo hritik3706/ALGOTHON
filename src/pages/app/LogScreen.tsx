@@ -4,6 +4,7 @@ import { Button } from '../../components/common/Button';
 import { FormField } from '../../components/common/FormField';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
 import { NumberedSelect } from '../../components/common/NumberedSelect';
+import { Timer } from '../../components/common/Timer';
 import { useToast } from '../../components/common/Toast';
 import {
   logAttempt,
@@ -111,6 +112,27 @@ export const LogScreen: FC<LogScreenProps> = ({
 
   const handleUnlink = () => {
     setSelectedProblemId(undefined);
+  };
+
+  const handleLinkChange = (val: string) => {
+    setLink(val);
+    const trimmed = val.trim();
+    if (trimmed.includes('leetcode.com/problems/')) {
+      const match = trimmed.match(/leetcode\.com\/problems\/([^/?#]+)/i);
+      if (match && match[1]) {
+        const slug = match[1].replace(/-/g, ' ');
+        const formattedTitle = slug
+          .split(' ')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+        if (!title) {
+          setTitle(formattedTitle);
+          setPlatform('LeetCode');
+        }
+      }
+    } else if (trimmed.includes('codeforces.com/')) {
+      if (!title) setPlatform('Codeforces');
+    }
   };
 
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
@@ -357,13 +379,13 @@ export const LogScreen: FC<LogScreenProps> = ({
           {/* Problem Link & Time Taken */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <FormField label="Problem URL (Optional)" hint="https://...">
+              <FormField label="Problem URL (Optional)" hint="Auto-fills platform & title slug">
                 <div className="relative">
                   <input
                     type="url"
                     placeholder="https://leetcode.com/problems/..."
                     value={link}
-                    onChange={(e) => setLink(e.target.value)}
+                    onChange={(e) => handleLinkChange(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-card bg-surface-2 border border-border text-fg text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent pr-8"
                   />
                   {link && (
@@ -391,7 +413,7 @@ export const LogScreen: FC<LogScreenProps> = ({
                     onChange={(e) => setTimeTaken(parseInt(e.target.value, 10) || 0)}
                     className="w-full px-3.5 py-2.5 rounded-card bg-surface-2 border border-border text-fg text-sm font-mono focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                   />
-                  <span className="font-mono text-xs text-fg-faint">min</span>
+                  <Timer onTimeChange={(m) => setTimeTaken(m)} />
                 </div>
               </FormField>
             </div>

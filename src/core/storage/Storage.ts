@@ -70,6 +70,142 @@ export class Storage {
     this.persist();
   }
 
+  public clearAllData(): void {
+    this.adapter.createBackup();
+    this.problems.clear();
+    this.attempts.clear();
+    this.revisions.clear();
+    this.persist();
+  }
+
+  public exportJSON(): string {
+    const data: StorageData = {
+      schema_version: CURRENT_SCHEMA_VERSION,
+      problems: Array.from(this.problems.values()),
+      attempts: Array.from(this.attempts.values()),
+      revisions: Array.from(this.revisions.values()),
+      updated_at: new Date().toISOString(),
+    };
+    return JSON.stringify(data, null, 2);
+  }
+
+  public exportMarkdown(): string {
+    const lines: string[] = [
+      '# Algothon Practice & Study Notes',
+      `*Generated on: ${new Date().toISOString()}*`,
+      '',
+      '## Problem Summary',
+      `Total Problems: ${this.problems.size} | Total Attempts: ${this.attempts.size}`,
+      '',
+    ];
+
+    const topics = Array.from(this.topics.values());
+    for (const t of topics) {
+      const topicProblems = Array.from(this.problems.values()).filter((p) =>
+        p.topic_ids.includes(t.id)
+      );
+      if (topicProblems.length === 0) continue;
+
+      lines.push(`### ${t.name}`);
+      for (const p of topicProblems) {
+        const rev = this.revisions.get(p.id);
+        const pAttempts = Array.from(this.attempts.values()).filter(
+          (a) => a.problem_id === p.id
+        );
+        lines.push(`- **[${p.difficulty.toUpperCase()}] ${p.title}** (${p.platform})`);
+        if (p.link) lines.push(`  - Link: ${p.link}`);
+        if (rev) {
+          lines.push(
+            `  - Interval: ${rev.interval_days}d | Repetitions: ${rev.repetitions} | EF: ${rev.ease_factor} | Due: ${rev.next_due_date}`
+          );
+        }
+        if (pAttempts.length > 0) {
+          lines.push(`  - Attempts: ${pAttempts.length}`);
+          const notes = pAttempts
+            .map((a) => a.notes)
+            .filter(Boolean) as string[];
+          if (notes.length > 0) {
+            lines.push(`  - **Notes:** ${notes.join('; ')}`);
+          }
+        }
+      }
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+
+  public importJSON(rawJson: string): { importedProblems: number; importedAttempts: number } {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(rawJson);
+    } catch {
+      throw new Error('Invalid JSON format');
+    }
+
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.problems)) {
+      throw new Error('Invalid Algothon backup structure: missing problems array');
+    }
+
+    // Safety backup
+    this.adapter.createBackup();
+
+    let problemsCount = 0;
+    let attemptsCount = 0;
+
+    for (const p of parsed.problems) {
+      if (p.id && p.title) {
+        this.problems.set(p.id, {
+          id: p.id,
+          title: p.title,
+          platform: p.platform || 'LeetCode',
+          link: p.link || '',
+          difficulty: VALID_DIFFICULTIES.includes(p.difficulty) ? p.difficulty : 'medium',
+          topic_ids: Array.isArray(p.topic_ids) ? p.topic_ids : ['arrays'],
+          created_date: p.created_date || new Date().toISOString().split('T')[0],
+        });
+        problemsCount++;
+      }
+    }
+
+    if (Array.isArray(parsed.attempts)) {
+      for (const a of parsed.attempts) {
+        if (a.id && a.problem_id) {
+          this.attempts.set(a.id, {
+            id: a.id,
+            problem_id: a.problem_id,
+            date: a.date || new Date().toISOString().split('T')[0],
+            status: VALID_STATUSES.includes(a.status) ? a.status : 'solved',
+            time_taken: typeof a.time_taken === 'number' ? a.time_taken : 15,
+            mistake_tag: VALID_MISTAKE_TAGS.includes(a.mistake_tag) ? a.mistake_tag : 'none',
+            recall_quality: typeof a.recall_quality === 'number' ? a.recall_quality : 4,
+            notes: a.notes || undefined,
+          });
+          attemptsCount++;
+        }
+      }
+    }
+
+    if (Array.isArray(parsed.revisions)) {
+      for (const r of parsed.revisions) {
+        if (r.problem_id) {
+          this.revisions.set(r.problem_id, {
+            problem_id: r.problem_id,
+            next_due_date: r.next_due_date || new Date().toISOString().split('T')[0],
+            interval_index: typeof r.interval_index === 'number' ? r.interval_index : 1,
+            interval_days: typeof r.interval_days === 'number' ? r.interval_days : 1,
+            ease_factor: typeof r.ease_factor === 'number' ? r.ease_factor : 2.5,
+            repetitions: typeof r.repetitions === 'number' ? r.repetitions : 0,
+            failed_count: typeof r.failed_count === 'number' ? r.failed_count : 0,
+            leech_flag: Boolean(r.leech_flag),
+          });
+        }
+      }
+    }
+
+    this.persist();
+    return { importedProblems: problemsCount, importedAttempts: attemptsCount };
+  }
+
   public subscribe(listener: () => void): () => void {
     this.listeners.push(listener);
     return () => {

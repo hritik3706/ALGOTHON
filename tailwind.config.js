@@ -11,6 +11,7 @@ export default {
         fg: "var(--fg)",
         accent: {
           DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
           ink: "var(--accent-ink)",
           glow: "var(--accent-glow)",
         },
@@ -18,14 +19,18 @@ export default {
           DEFAULT: "var(--surface)",
           2: "var(--surface-2)",
         },
+        paper: {
+          DEFAULT: "var(--card-paper)",
+          ink: "var(--card-paper-ink)",
+        },
         border: "var(--border)",
         "fg-muted": "var(--fg-muted)",
         "fg-faint": "var(--fg-faint)",
         danger: "var(--danger)",
       },
       fontFamily: {
-        display: ["'Instrument Serif'", "Georgia", "serif"],
-        ui: ["Geist", "Inter", "system-ui", "-apple-system", "sans-serif"],
+        display: ["'Newsreader'", "'Instrument Serif'", "Georgia", "serif"],
+        ui: ["'Geist'", "'Inter'", "system-ui", "-apple-system", "sans-serif"],
         mono: ["'JetBrains Mono'", "monospace"],
       },
       borderRadius: {
@@ -33,8 +38,9 @@ export default {
         card: "16px",
       },
       boxShadow: {
-        glow: "0 0 50px -10px rgba(198, 244, 50, 0.35)",
-        "glow-lg": "0 0 100px -15px rgba(198, 244, 50, 0.4)",
+        glow: "0 0 50px -10px rgba(255, 107, 91, 0.35)",
+        "glow-lg": "0 0 100px -15px rgba(255, 107, 91, 0.4)",
+        flashcard: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 107, 91, 0.15)",
       },
     },
   },

@@ -15,13 +15,14 @@ import { Card } from '../../components/common/Card';
 import { Pill } from '../../components/common/Pill';
 import { Button } from '../../components/common/Button';
 import { EmptyState } from '../../components/common/EmptyState';
-import { PlusCircle, Flame, Clock, CheckCircle2, Database } from 'lucide-react';
+import { PlusCircle, Flame, Clock, CheckCircle2, Database, Layers, ArrowRight } from 'lucide-react';
 
 interface TodayScreenProps {
   onNavigateToLog: (problemTitle?: string, topicId?: string) => void;
+  onStartReview?: () => void;
 }
 
-export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
+export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog, onStartReview }) => {
   const [plan, setPlan] = useState<PlanItem[]>([]);
   const [dueRevisions, setDueRevisions] = useState<
     { problem: Problem; revision: Revision; topic?: Topic }[]
@@ -83,14 +84,25 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
             Focus on 3–5 high-impact interleaved topics to prevent regression.
           </p>
         </div>
-        <Button
-          variant="primary"
-          icon={<PlusCircle className="w-4 h-4" />}
-          onClick={() => onNavigateToLog()}
-          className="shadow-glow"
-        >
-          Log attempt
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {dueRevisions.length > 0 && onStartReview && (
+            <Button
+              variant="secondary"
+              icon={<Layers className="w-4 h-4 text-accent" />}
+              onClick={onStartReview}
+            >
+              Start review ({dueRevisions.length})
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            icon={<PlusCircle className="w-4 h-4" />}
+            onClick={() => onNavigateToLog()}
+            className="shadow-glow"
+          >
+            Log attempt
+          </Button>
+        </div>
       </div>
 
       {/* Top Stat Pills Row */}
@@ -199,69 +211,117 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
             </div>
           </EmptyState>
         ) : (
-          <div className="space-y-3">
-            {plan.map((item, index) => {
-              const diffBadge = (
-                <span
-                  className={`font-mono text-[10px] uppercase font-semibold px-2 py-0.5 rounded ${
-                    item.problem.difficulty === 'easy'
-                      ? 'bg-accent/15 text-accent'
-                      : item.problem.difficulty === 'medium'
-                      ? 'bg-yellow-500/15 text-yellow-400'
-                      : 'bg-danger/15 text-danger'
-                  }`}
-                >
-                  {item.problem.difficulty}
-                </span>
-              );
-
-              const statusPill =
-                item.type === 'due' ? (
-                  <Pill variant="due" dot>Due revision</Pill>
-                ) : item.type === 'relearn' ? (
-                  <Pill variant="leech" dot>Leech: Relearn</Pill>
-                ) : (
-                  <Pill variant="new" dot>New practice</Pill>
-                );
-
-              return (
-                <Card
-                  key={item.id}
-                  className="p-5 bg-surface hover:bg-surface-2/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-border"
-                >
-                  <div className="flex items-start gap-4">
-                    <span className="font-mono text-xs w-6 h-6 rounded-md bg-surface-2 text-fg-muted border border-border flex items-center justify-center shrink-0 font-bold mt-0.5">
-                      {index + 1}
+          <div className="space-y-6">
+            {/* Featured Up Next Card (Cream Paper Flashcard style) */}
+            {plan.length > 0 && (
+              <div className="p-6 rounded-card bg-[#F4EDE0] text-[#14213D] shadow-flashcard border border-[#E0BFBA]/60 space-y-4 paper-lines">
+                <div className="flex items-center justify-between border-b border-[#14213D]/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+                    <span className="font-mono text-xs uppercase font-bold tracking-wider text-[#14213D]/70">
+                      Up Next • Priority Practice
                     </span>
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="font-ui text-base font-medium text-fg">
-                          {item.problem.title}
-                        </span>
-                        {diffBadge}
-                        <span className="font-mono text-xs text-fg-faint">
-                          • {item.topic.name}
-                        </span>
-                      </div>
-                      <p className="font-mono text-xs text-fg-muted">
-                        {item.reason}
-                      </p>
-                    </div>
                   </div>
+                  <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#14213D]/10 text-[#14213D]">
+                    {plan[0].problem.difficulty}
+                  </span>
+                </div>
 
-                  <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-                    {statusPill}
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => onNavigateToLog(item.problem.title, item.topic.id)}
-                    >
-                      Log attempt
-                    </Button>
+                <div className="space-y-1">
+                  <div className="font-display text-2xl sm:text-3xl text-[#14213D]">
+                    {plan[0].problem.title}
                   </div>
-                </Card>
-              );
-            })}
+                  <p className="font-mono text-xs text-[#14213D]/75">
+                    Topic: {plan[0].topic.name} • {plan[0].reason}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-mono text-xs text-[#14213D]/60">
+                    {plan[0].type === 'due' ? 'Spaced Revision Due' : 'Interleaved practice'}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => onNavigateToLog(plan[0].problem.title, plan[0].topic.id)}
+                    icon={<ArrowRight className="w-3.5 h-3.5" />}
+                  >
+                    Start problem
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Remaining Interleaved Practice Deck */}
+            {plan.length > 1 && (
+              <div className="space-y-3 pt-2">
+                <div className="font-mono text-xs text-fg-muted uppercase font-semibold">
+                  Remaining Interleaved Deck ({plan.length - 1})
+                </div>
+                {plan.slice(1).map((item, index) => {
+                  const diffBadge = (
+                    <span
+                      className={`font-mono text-[10px] uppercase font-semibold px-2 py-0.5 rounded ${
+                        item.problem.difficulty === 'easy'
+                          ? 'bg-accent/15 text-accent'
+                          : item.problem.difficulty === 'medium'
+                          ? 'bg-yellow-500/15 text-yellow-400'
+                          : 'bg-danger/15 text-danger'
+                      }`}
+                    >
+                      {item.problem.difficulty}
+                    </span>
+                  );
+
+                  const statusPill =
+                    item.type === 'due' ? (
+                      <Pill variant="due" dot>Due revision</Pill>
+                    ) : item.type === 'relearn' ? (
+                      <Pill variant="leech" dot>Leech: Relearn</Pill>
+                    ) : (
+                      <Pill variant="new" dot>New practice</Pill>
+                    );
+
+                  return (
+                    <Card
+                      key={item.id}
+                      className="p-5 bg-surface hover:bg-surface-2/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-border"
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className="font-mono text-xs w-6 h-6 rounded-md bg-surface-2 text-fg-muted border border-border flex items-center justify-center shrink-0 font-bold mt-0.5">
+                          {index + 2}
+                        </span>
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <span className="font-ui text-base font-medium text-fg">
+                              {item.problem.title}
+                            </span>
+                            {diffBadge}
+                            <span className="font-mono text-xs text-fg-faint">
+                              • {item.topic.name}
+                            </span>
+                          </div>
+                          <p className="font-mono text-xs text-fg-muted">
+                            {item.reason}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                        {statusPill}
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => onNavigateToLog(item.problem.title, item.topic.id)}
+                        >
+                          Log attempt
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </section>

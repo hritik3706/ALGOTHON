@@ -68,17 +68,17 @@ export const TopicStrengthCard: FC<TopicStrengthCardProps> = ({
         </div>
       </div>
 
-      {/* 7-Point Lime Line Chart */}
+      {/* 7-Point Coral Line Chart */}
       <div className="mt-4 pt-2 relative">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-24 overflow-visible"
         >
           <defs>
-            <linearGradient id="limeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#C6F432" stopOpacity="0.35" />
-              <stop offset="60%" stopColor="#C6F432" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#C6F432" stopOpacity="0" />
+            <linearGradient id="coralGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FF6B5B" stopOpacity="0.35" />
+              <stop offset="60%" stopColor="#FF6B5B" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#FF6B5B" stopOpacity="0" />
             </linearGradient>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -87,13 +87,13 @@ export const TopicStrengthCard: FC<TopicStrengthCardProps> = ({
           </defs>
 
           {/* Shaded Area */}
-          <path d={areaD} fill="url(#limeGradient)" />
+          <path d={areaD} fill="url(#coralGradient)" />
 
           {/* Glowing Line */}
           <path
             d={pathD}
             fill="none"
-            stroke="#C6F432"
+            stroke="#FF6B5B"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -107,8 +107,8 @@ export const TopicStrengthCard: FC<TopicStrengthCardProps> = ({
                 cx={pt.x}
                 cy={pt.y}
                 r={i === coordinates.length - 1 ? 4.5 : 2.5}
-                fill={i === coordinates.length - 1 ? '#C6F432' : '#0B0B0C'}
-                stroke="#C6F432"
+                fill={i === coordinates.length - 1 ? '#FF6B5B' : '#0B1326'}
+                stroke="#FF6B5B"
                 strokeWidth={i === coordinates.length - 1 ? 2.5 : 1.5}
               />
             </g>

@@ -26,11 +26,11 @@ export const LogoMark: FC<LogoMarkProps> = ({
           xmlns="http://www.w3.org/2000/svg"
         >
           {/* DAG: One parent at top (14, 7), two children at (7, 20) and (21, 20) */}
-          <line x1="14" y1="7" x2="7" y2="20" stroke="#0B0B0C" strokeWidth="2.2" strokeLinecap="round" />
-          <line x1="14" y1="7" x2="21" y2="20" stroke="#0B0B0C" strokeWidth="2.2" strokeLinecap="round" />
-          <circle cx="14" cy="7" r="3.2" fill="#0B0B0C" />
-          <circle cx="7" cy="20" r="3" fill="#0B0B0C" />
-          <circle cx="21" cy="20" r="3" fill="#0B0B0C" />
+          <line x1="14" y1="7" x2="7" y2="20" stroke="#0B1326" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1="14" y1="7" x2="21" y2="20" stroke="#0B1326" strokeWidth="2.2" strokeLinecap="round" />
+          <circle cx="14" cy="7" r="3.2" fill="#0B1326" />
+          <circle cx="7" cy="20" r="3" fill="#0B1326" />
+          <circle cx="21" cy="20" r="3" fill="#0B1326" />
         </svg>
       </div>
 

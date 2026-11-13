@@ -54,8 +54,8 @@ export const RevisionTimelineCard: FC<RevisionTimelineCardProps> = ({
           className="absolute top-0 bottom-0 z-20 pointer-events-none flex flex-col items-center"
           style={{ left: '50%' }}
         >
-          <div className="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_#C6F432]" />
-          <div className="w-[1.5px] h-full bg-accent shadow-[0_0_6px_#C6F432]" />
+          <div className="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_rgba(255,107,91,0.6)]" />
+          <div className="w-[1.5px] h-full bg-accent shadow-[0_0_6px_rgba(255,107,91,0.6)]" />
           <span className="font-mono text-[8px] uppercase tracking-tighter text-accent bg-bg/90 px-1 py-0.2 rounded border border-accent/40 mt-0.5">
             now
           </span>
