@@ -1,7 +1,13 @@
 import { FC, useEffect, useState } from 'react';
 import { Card } from '../../components/common/Card';
 import { Pill } from '../../components/common/Pill';
-import { getInsights, getCoverageMatrix, InsightSummary, TopicCoverageRow } from '../../api';
+import {
+  getInsights,
+  getCoverageMatrix,
+  subscribeToStore,
+  InsightSummary,
+  TopicCoverageRow,
+} from '../../api';
 import { AlertTriangle, TrendingUp, BarChart2, CheckCircle2 } from 'lucide-react';
 
 export const InsightsScreen: FC = () => {
@@ -11,15 +17,20 @@ export const InsightsScreen: FC = () => {
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([getInsights(), getCoverageMatrix()]).then(([ins, matrix]) => {
-      if (mounted) {
-        setInsights(ins);
-        setCoverageRows(matrix);
-        setIsLoading(false);
-      }
-    });
+    const fetchInsights = () => {
+      Promise.all([getInsights(), getCoverageMatrix()]).then(([ins, matrix]) => {
+        if (mounted) {
+          setInsights(ins);
+          setCoverageRows(matrix);
+          setIsLoading(false);
+        }
+      });
+    };
+    fetchInsights();
+    const unsubscribe = subscribeToStore(fetchInsights);
     return () => {
       mounted = false;
+      unsubscribe();
     };
   }, []);
 

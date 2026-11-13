@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { InsightsEngine } from '../src/core/stats/Insights';
+import { storeManager } from '../src/core/storeManager';
 import { Topic, Problem, Attempt } from '../src/types';
 
 describe('InsightsEngine', () => {
@@ -84,6 +85,20 @@ describe('InsightsEngine', () => {
 
     // If today is Nov 04 with no attempt on Nov 03 -> Missed day resets streak to 0!
     expect(InsightsEngine.computeStreak(attempts, '2026-11-04')).toBe(0);
+  });
+
+  it('storeManager computes dynamic top topic strength trend and upcoming revisions', () => {
+    storeManager.loadDemoData();
+    const topTopic = storeManager.getTopTopicStrength('2026-11-10');
+    expect(topTopic).toBeDefined();
+    expect(topTopic?.history).toHaveLength(7);
+    expect(topTopic?.strength).toBeGreaterThanOrEqual(0);
+
+    const upcoming = storeManager.getUpcomingRevisions(4, '2026-11-10');
+    expect(upcoming).toBeInstanceOf(Array);
+    expect(upcoming.length).toBeGreaterThan(0);
+    expect(upcoming[0].problem.title).toBeDefined();
+    expect(typeof upcoming[0].days_until_due).toBe('number');
   });
 });
 

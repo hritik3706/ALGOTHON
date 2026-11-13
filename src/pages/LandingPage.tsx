@@ -6,7 +6,18 @@ import { TodaysPlanCard } from '../components/landing/TodaysPlanCard';
 import { TopicStrengthCard } from '../components/landing/TopicStrengthCard';
 import { RevisionTimelineCard } from '../components/landing/RevisionTimelineCard';
 import { FeatureGrid } from '../components/landing/FeatureGrid';
-import { getPlan, getInsights, loadDemoData, PlanItem, InsightSummary } from '../api';
+import {
+  getPlan,
+  getInsights,
+  loadDemoData,
+  getTopTopicStrength,
+  getUpcomingRevisions,
+  subscribeToStore,
+  PlanItem,
+  InsightSummary,
+  TopTopicStrength,
+  UpcomingRevisionItem,
+} from '../api';
 import { Database } from 'lucide-react';
 
 interface LandingPageProps {
@@ -16,18 +27,29 @@ interface LandingPageProps {
 export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
   const [plan, setPlan] = useState<PlanItem[]>([]);
   const [insights, setInsights] = useState<InsightSummary | null>(null);
+  const [topTopic, setTopTopic] = useState<TopTopicStrength | null>(null);
+  const [upcomingRevisions, setUpcomingRevisions] = useState<UpcomingRevisionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = useCallback(() => {
-    return Promise.all([getPlan(), getInsights()]).then(([p, ins]) => {
+    return Promise.all([
+      getPlan(),
+      getInsights(),
+      getTopTopicStrength(),
+      getUpcomingRevisions(4),
+    ]).then(([p, ins, top, upcoming]) => {
       setPlan(p);
       setInsights(ins);
+      setTopTopic(top);
+      setUpcomingRevisions(upcoming);
       setIsLoading(false);
     });
   }, []);
 
   useEffect(() => {
     fetchData();
+    const unsubscribe = subscribeToStore(fetchData);
+    return () => unsubscribe();
   }, [fetchData]);
 
   const handleLoadDemo = async () => {
@@ -201,12 +223,26 @@ export const LandingPage: FC<LandingPageProps> = ({ onNavigateToApp }) => {
 
             {/* Center Card: Topic Strength */}
             <div className="w-full max-w-md mx-auto lg:max-w-none">
-              <TopicStrengthCard score={totalProblems > 0 ? 94 : 0} label={totalProblems > 0 ? "Arrays & Hashing" : "Awaiting Data"} />
+              <TopicStrengthCard
+                score={topTopic?.strength ?? 0}
+                label={topTopic?.topic.name ?? 'Awaiting Data'}
+                isUnlocked={topTopic?.is_unlocked ?? false}
+                points={topTopic?.history ?? [0, 0, 0, 0, 0, 0, 0]}
+              />
             </div>
 
             {/* Right Card: Revision Timeline */}
             <div className="w-full max-w-md mx-auto lg:max-w-none">
-              <RevisionTimelineCard />
+              <RevisionTimelineCard
+                items={upcomingRevisions.map((item) => ({
+                  problemTitle: item.problem.title,
+                  topicName: item.topic?.name,
+                  isDue: item.is_due,
+                  daysUntilDue: item.days_until_due,
+                  intervalDays: item.revision.interval_days,
+                }))}
+                onItemClick={() => onNavigateToApp('revisions')}
+              />
             </div>
           </div>
         </div>

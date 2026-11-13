@@ -11,6 +11,8 @@ import {
   Attempt,
   TopicCoverageRow,
   GraphLayoutResult,
+  UpcomingRevisionItem,
+  TopTopicStrength,
 } from '../types';
 
 export * from '../types';
@@ -76,6 +78,14 @@ export async function getCoverageMatrix(): Promise<TopicCoverageRow[]> {
 
 export async function getGraphLayout(): Promise<GraphLayoutResult> {
   return Promise.resolve(storeManager.getGraphLayout());
+}
+
+export async function getTopTopicStrength(today?: string): Promise<TopTopicStrength | null> {
+  return Promise.resolve(storeManager.getTopTopicStrength(today));
+}
+
+export async function getUpcomingRevisions(limit?: number, today?: string): Promise<UpcomingRevisionItem[]> {
+  return Promise.resolve(storeManager.getUpcomingRevisions(limit, today));
 }
 
 export function subscribeToStore(listener: () => void): () => void {

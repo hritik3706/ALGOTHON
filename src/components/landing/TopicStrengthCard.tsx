@@ -5,26 +5,31 @@ import { Pill } from '../common/Pill';
 interface TopicStrengthCardProps {
   score?: number;
   label?: string;
+  isUnlocked?: boolean;
+  points?: number[];
 }
 
 export const TopicStrengthCard: FC<TopicStrengthCardProps> = ({
-  score = 94,
-  label = 'Arrays & Hashing',
+  score = 0,
+  label = 'Awaiting Data',
+  isUnlocked = false,
+  points = [0, 0, 0, 0, 0, 0, 0],
 }) => {
   // 7-point line chart data (0-100 scale over last 7 days)
-  const points = [45, 52, 60, 58, 72, 85, 94];
+  const chartPoints = points.length === 7 ? points : [0, 0, 0, 0, 0, 0, score];
   const width = 280;
   const height = 90;
   const paddingX = 15;
   const paddingY = 15;
 
-  const dx = (width - paddingX * 2) / (points.length - 1);
-  const minVal = 30;
+  const dx = (width - paddingX * 2) / (chartPoints.length - 1);
+  const minVal = 0;
   const maxVal = 100;
 
-  const coordinates = points.map((val, i) => {
+  const coordinates = chartPoints.map((rawVal, i) => {
+    const val = Math.max(minVal, Math.min(maxVal, rawVal));
     const x = paddingX + i * dx;
-    const y = height - paddingY - ((val - minVal) / (maxVal - minVal)) * (height - paddingY * 2);
+    const y = height - paddingY - (val / (maxVal - minVal)) * (height - paddingY * 2);
     return { x, y, val };
   });
 
@@ -43,8 +48,8 @@ export const TopicStrengthCard: FC<TopicStrengthCardProps> = ({
           <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
           <span className="font-mono text-xs text-fg-muted font-medium">Topic strength</span>
         </div>
-        <Pill variant="due" size="sm" dot>
-          Unlocked
+        <Pill variant={isUnlocked ? 'due' : score > 0 ? 'failed' : 'neutral'} size="sm" dot>
+          {isUnlocked ? 'Unlocked' : score > 0 ? 'Locked' : 'Awaiting Data'}
         </Pill>
       </div>
 

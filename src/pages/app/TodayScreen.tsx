@@ -4,6 +4,7 @@ import {
   getDueRevisions,
   getInsights,
   loadDemoData,
+  subscribeToStore,
   PlanItem,
   Revision,
   Problem,
@@ -41,6 +42,8 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = subscribeToStore(loadData);
+    return () => unsubscribe();
   }, [loadData]);
 
   const handleLoadDemo = async () => {
@@ -140,7 +143,7 @@ export const TodayScreen: FC<TodayScreenProps> = ({ onNavigateToLog }) => {
           </div>
           <div>
             <div className="font-display text-2xl text-fg leading-none">
-              {topicsUnlocked} <span className="text-fg-faint text-sm font-display">/ 10</span>
+              {topicsUnlocked} <span className="text-fg-faint text-sm font-display">/ {insights?.total_topics ?? 10}</span>
             </div>
             <div className="font-mono text-[10px] text-fg-faint uppercase tracking-wider mt-1">
               Topics Unlocked

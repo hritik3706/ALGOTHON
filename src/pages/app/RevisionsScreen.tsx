@@ -8,7 +8,8 @@ import {
   getDueRevisions,
   getLeeches,
   markRelearned,
-  resetToSampleData,
+  loadDemoData,
+  subscribeToStore,
   Problem,
   Revision,
   Topic,
@@ -37,7 +38,15 @@ export const RevisionsScreen: FC<RevisionsScreenProps> = ({ onLogProblem }) => {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = subscribeToStore(loadData);
+    return () => unsubscribe();
   }, []);
+
+  const handleResetDemo = async () => {
+    await loadDemoData();
+    loadData();
+    showToast('Demo data reloaded.');
+  };
 
   const handleMarkRelearned = async (problemId: string, title: string) => {
     try {
@@ -67,7 +76,7 @@ export const RevisionsScreen: FC<RevisionsScreenProps> = ({ onLogProblem }) => {
           size="sm"
           variant="secondary"
           icon={<RefreshCw className="w-3.5 h-3.5" />}
-          onClick={resetToSampleData}
+          onClick={handleResetDemo}
           title="Reload clean seed dataset for repeatable demo"
         >
           Reset Demo Data

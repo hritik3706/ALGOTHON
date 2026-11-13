@@ -1,8 +1,31 @@
 import type { FC } from 'react';
 import { Card } from '../common/Card';
 
-export const RevisionTimelineCard: FC = () => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+export interface RevisionTimelineItem {
+  problemTitle: string;
+  topicName?: string;
+  isDue: boolean;
+  daysUntilDue: number;
+  intervalDays: number;
+}
+
+interface RevisionTimelineCardProps {
+  items?: RevisionTimelineItem[];
+  onItemClick?: () => void;
+}
+
+export const RevisionTimelineCard: FC<RevisionTimelineCardProps> = ({
+  items = [],
+  onItemClick,
+}) => {
+  const days = [-2, -1, 0, 1, 2].map((offset) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return {
+      label: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      isToday: offset === 0,
+    };
+  });
 
   return (
     <Card className="card-tilt-right p-5 bg-surface/95 border-border/80 shadow-2xl relative select-none">
@@ -19,14 +42,14 @@ export const RevisionTimelineCard: FC = () => {
       <div className="relative pt-1 pb-2">
         {/* Horizontal Day Headers */}
         <div className="grid grid-cols-5 font-mono text-[10px] text-fg-faint text-center mb-3 border-b border-border/30 pb-1.5">
-          {days.map((d, i) => (
-            <span key={d} className={i === 2 ? 'text-accent font-bold' : ''}>
-              {d}
+          {days.map((d) => (
+            <span key={d.label} className={d.isToday ? 'text-accent font-bold' : ''}>
+              {d.label}
             </span>
           ))}
         </div>
 
-        {/* Vertical NOW marker at Wednesday (today) */}
+        {/* Vertical NOW marker at today (index 2 / 50%) */}
         <div
           className="absolute top-0 bottom-0 z-20 pointer-events-none flex flex-col items-center"
           style={{ left: '50%' }}
@@ -39,63 +62,69 @@ export const RevisionTimelineCard: FC = () => {
         </div>
 
         {/* Schedule Bars */}
-        <div className="space-y-3 relative z-10">
-          {/* Row 1: Two Sum (Due Today - Lime) */}
-          <div className="space-y-1">
-            <div className="flex justify-between font-mono text-[10px] text-fg-muted">
-              <span>Two Sum</span>
-              <span className="text-accent">Due Now</span>
-            </div>
-            <div className="h-4 w-full bg-surface-2 rounded-md overflow-hidden relative">
-              <div
-                className="absolute top-0 bottom-0 rounded-md bg-accent shadow-[0_0_12px_rgba(198,244,50,0.5)]"
-                style={{ left: '32%', width: '38%' }}
-              />
-            </div>
+        {items.length === 0 ? (
+          <div className="py-7 text-center space-y-1">
+            <p className="font-mono text-xs text-fg-muted">No revisions scheduled</p>
+            <p className="font-mono text-[10px] text-fg-faint">Log solved problems to schedule SM-2 intervals</p>
           </div>
+        ) : (
+          <div className="space-y-3 relative z-10">
+            {items.slice(0, 4).map((item, idx) => {
+              let left = '35%';
+              let width = '30%';
+              let barClass = 'bg-accent shadow-[0_0_12px_rgba(198,244,50,0.5)]';
+              let badgeText = 'Due Now';
+              let badgeClass = 'text-accent font-semibold';
 
-          {/* Row 2: Invert Binary Tree (Due +2d - Grey) */}
-          <div className="space-y-1">
-            <div className="flex justify-between font-mono text-[10px] text-fg-muted">
-              <span>Invert Tree</span>
-              <span className="text-fg-faint">+2 days</span>
-            </div>
-            <div className="h-4 w-full bg-surface-2 rounded-md overflow-hidden relative">
-              <div
-                className="absolute top-0 bottom-0 rounded-md bg-white/20 border border-white/10"
-                style={{ left: '60%', width: '35%' }}
-              />
-            </div>
-          </div>
+              if (item.isDue || item.daysUntilDue === 0) {
+                left = '35%';
+                width = '30%';
+                barClass = 'bg-accent shadow-[0_0_12px_rgba(198,244,50,0.5)]';
+                badgeText = 'Due Now';
+                badgeClass = 'text-accent font-semibold';
+              } else if (item.daysUntilDue < 0) {
+                left = '12%';
+                width = '28%';
+                barClass = 'bg-danger/80 border border-danger/40';
+                badgeText = `${Math.abs(item.daysUntilDue)}d Overdue`;
+                badgeClass = 'text-danger';
+              } else if (item.daysUntilDue === 1) {
+                left = '55%';
+                width = '28%';
+                barClass = 'bg-white/30 border border-white/10';
+                badgeText = '+1 day';
+                badgeClass = 'text-fg-faint';
+              } else {
+                left = '70%';
+                width = '24%';
+                barClass = 'bg-white/15 border border-white/10';
+                badgeText = `+${item.daysUntilDue} days`;
+                badgeClass = 'text-fg-faint';
+              }
 
-          {/* Row 3: 3Sum (Upcoming tomorrow) */}
-          <div className="space-y-1">
-            <div className="flex justify-between font-mono text-[10px] text-fg-muted">
-              <span>3Sum</span>
-              <span className="text-fg-faint">+1 day</span>
-            </div>
-            <div className="h-4 w-full bg-surface-2 rounded-md overflow-hidden relative">
-              <div
-                className="absolute top-0 bottom-0 rounded-md bg-white/30 border border-white/10"
-                style={{ left: '45%', width: '30%' }}
-              />
-            </div>
+              return (
+                <div
+                  key={idx}
+                  onClick={onItemClick}
+                  className="space-y-1 cursor-pointer group"
+                >
+                  <div className="flex justify-between font-mono text-[10px] text-fg-muted">
+                    <span className="truncate pr-2 group-hover:text-accent transition-colors">
+                      {item.problemTitle}
+                    </span>
+                    <span className={badgeClass}>{badgeText}</span>
+                  </div>
+                  <div className="h-4 w-full bg-surface-2 rounded-md overflow-hidden relative">
+                    <div
+                      className={`absolute top-0 bottom-0 rounded-md transition-all ${barClass}`}
+                      style={{ left, width }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Row 4: Coin Change (Upcoming) */}
-          <div className="space-y-1">
-            <div className="flex justify-between font-mono text-[10px] text-fg-muted">
-              <span>Coin Change</span>
-              <span className="text-fg-faint">+3 days</span>
-            </div>
-            <div className="h-4 w-full bg-surface-2 rounded-md overflow-hidden relative">
-              <div
-                className="absolute top-0 bottom-0 rounded-md bg-white/20 border border-white/10"
-                style={{ left: '72%', width: '25%' }}
-              />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </Card>
   );

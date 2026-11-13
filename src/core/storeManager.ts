@@ -17,14 +17,10 @@ import {
   AddProblemInput,
   TopicCoverageRow,
   GraphLayoutResult,
+  UpcomingRevisionItem,
+  TopTopicStrength,
 } from '../types';
-import {
-  SEED_TOPICS,
-  SEED_PROBLEMS,
-  SEED_ATTEMPTS,
-  SEED_REVISIONS,
-  getRelativeDate,
-} from './seed';
+import { getRelativeDate } from './seed';
 
 class StoreManager {
   private storage: Storage;
@@ -263,8 +259,99 @@ class StoreManager {
       last_7_days,
       total_problems: problems.length,
       topics_unlocked: topicSummaries.filter((t) => t.is_unlocked).length,
+      total_topics: topics.length,
       revisions_due_today: this.getDueRevisions(todayStr).length,
     };
+  }
+
+  public getTopTopicStrength(todayStr: string = getRelativeDate(0)): TopTopicStrength | null {
+    const topics = this.storage.getTopics();
+    const problems = this.storage.getProblems();
+    const attempts = this.storage.getAttempts();
+    if (topics.length === 0) return null;
+
+    const topicSummaries = this.getTopics();
+    const withAttempts = topicSummaries.filter((t) => t.attempts > 0);
+    const sorted = (withAttempts.length > 0 ? withAttempts : topicSummaries).sort(
+      (a, b) => b.strength - a.strength || b.attempts - a.attempts
+    );
+    const top = sorted[0];
+
+    if (!top || top.attempts === 0) {
+      return {
+        topic: topics[0],
+        strength: 0,
+        is_unlocked: true,
+        history: [0, 0, 0, 0, 0, 0, 0],
+      };
+    }
+
+    // Compute real 7-day progression for this topic
+    const topicProblemIds = new Set(
+      problems.filter((p) => p.topic_ids.includes(top.topic.id)).map((p) => p.id)
+    );
+    const topicAttempts = attempts.filter((a) => topicProblemIds.has(a.problem_id));
+
+    const baseDate = new Date(todayStr + 'T00:00:00Z');
+    const history: number[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(baseDate);
+      d.setUTCDate(d.getUTCDate() - i);
+      const dStr = d.toISOString().split('T')[0];
+
+      const attemptsUpToDay = topicAttempts.filter((a) => a.date <= dStr);
+      if (attemptsUpToDay.length === 0) {
+        history.push(0);
+      } else {
+        const solved = attemptsUpToDay.filter(
+          (a) => a.status === 'solved' || a.status === 'hint'
+        ).length;
+        const wilson = StatsEngine.calculateWilsonLowerBound(solved, attemptsUpToDay.length);
+        history.push(Math.round(wilson * 100));
+      }
+    }
+
+    return {
+      topic: top.topic,
+      strength: top.strength,
+      is_unlocked: top.is_unlocked,
+      history,
+    };
+  }
+
+  public getUpcomingRevisions(limit = 4, todayStr: string = getRelativeDate(0)): UpcomingRevisionItem[] {
+    const revisions = this.storage.getRevisions();
+    const items: UpcomingRevisionItem[] = [];
+
+    for (const rev of revisions) {
+      const problem = this.storage.getProblem(rev.problem_id);
+      if (!problem) continue;
+      const topic = this.storage.getTopics().find((t) => problem.topic_ids.includes(t.id));
+
+      const daysUntilDue = Math.round(
+        (new Date(rev.next_due_date + 'T00:00:00Z').getTime() -
+          new Date(todayStr + 'T00:00:00Z').getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      items.push({
+        problem,
+        revision: rev,
+        topic,
+        days_until_due: daysUntilDue,
+        is_due: daysUntilDue <= 0 && !rev.leech_flag,
+      });
+    }
+
+    // Sort: Due first, then earliest upcoming
+    items.sort((a, b) => {
+      if (a.is_due && !b.is_due) return -1;
+      if (!a.is_due && b.is_due) return 1;
+      return a.days_until_due - b.days_until_due;
+    });
+
+    return items.slice(0, limit);
   }
 
   public getCoverageMatrix(): TopicCoverageRow[] {
@@ -293,16 +380,7 @@ class StoreManager {
   }
 
   public resetToSampleData(): void {
-    const adapter = new LocalStorageAdapter();
-    adapter.saveSeedTopics(SEED_TOPICS);
-    adapter.saveData({
-      schema_version: 1,
-      problems: SEED_PROBLEMS,
-      attempts: SEED_ATTEMPTS,
-      revisions: SEED_REVISIONS,
-      updated_at: new Date().toISOString(),
-    });
-    window.location.reload();
+    this.storage.loadDemoData();
   }
 }
 

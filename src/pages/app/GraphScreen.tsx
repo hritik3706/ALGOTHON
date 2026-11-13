@@ -2,7 +2,13 @@ import { FC, useEffect, useState } from 'react';
 import { Card } from '../../components/common/Card';
 import { Pill } from '../../components/common/Pill';
 import { Button } from '../../components/common/Button';
-import { getTopics, getGraphLayout, TopicSummary, GraphLayoutResult } from '../../api';
+import {
+  getTopics,
+  getGraphLayout,
+  subscribeToStore,
+  TopicSummary,
+  GraphLayoutResult,
+} from '../../api';
 import { Lock, Unlock, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface TreeNode {
@@ -24,10 +30,15 @@ export const GraphScreen: FC<{ onLogTopic?: (topicId: string) => void }> = ({
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
 
   useEffect(() => {
-    Promise.all([getTopics(), getGraphLayout()]).then(([resTopics, resLayout]) => {
-      setTopics(resTopics);
-      setLayout(resLayout);
-    });
+    const fetchData = () => {
+      Promise.all([getTopics(), getGraphLayout()]).then(([resTopics, resLayout]) => {
+        setTopics(resTopics);
+        setLayout(resLayout);
+      });
+    };
+    fetchData();
+    const unsubscribe = subscribeToStore(fetchData);
+    return () => unsubscribe();
   }, []);
 
   const svgWidth = layout?.width || 860;

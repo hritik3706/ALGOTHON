@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { Card } from '../../components/common/Card';
 import { Pill } from '../../components/common/Pill';
 import { Button } from '../../components/common/Button';
-import { getTopics, getTopicPath, TopicSummary, Topic } from '../../api';
+import { getTopics, getTopicPath, subscribeToStore, TopicSummary, Topic } from '../../api';
 import { Search, Lock, Unlock, ArrowRight, AlertTriangle } from 'lucide-react';
 
 interface TopicsScreenProps {
@@ -15,12 +15,21 @@ export const TopicsScreen: FC<TopicsScreenProps> = ({ onLogTopic }) => {
   const [prereqPath, setPrereqPath] = useState<{ path: Topic[]; is_unlocked: boolean } | null>(null);
 
   useEffect(() => {
-    getTopics().then((res) => {
-      setTopics(res);
-      if (res.length > 0) {
-        handleSearchPrereqs('dp');
-      }
-    });
+    const fetchData = () => {
+      getTopics().then((res) => {
+        setTopics(res);
+        if (res.length > 0) {
+          const currentId =
+            selectedTopicId && res.some((t) => t.topic.id === selectedTopicId)
+              ? selectedTopicId
+              : 'dp';
+          handleSearchPrereqs(currentId);
+        }
+      });
+    };
+    fetchData();
+    const unsubscribe = subscribeToStore(fetchData);
+    return () => unsubscribe();
   }, []);
 
   const handleSearchPrereqs = async (topicId: string) => {

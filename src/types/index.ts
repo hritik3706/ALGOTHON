@@ -138,7 +138,23 @@ export interface InsightSummary {
   last_7_days: DailyActivity[];
   total_problems: number;
   topics_unlocked: number;
+  total_topics?: number;
   revisions_due_today: number;
+}
+
+export interface UpcomingRevisionItem {
+  problem: Problem;
+  revision: Revision;
+  topic?: Topic;
+  days_until_due: number;
+  is_due: boolean;
+}
+
+export interface TopTopicStrength {
+  topic: Topic;
+  strength: number;
+  is_unlocked: boolean;
+  history: number[];
 }
 
 export interface LogAttemptInput {
