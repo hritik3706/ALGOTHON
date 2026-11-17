@@ -24,6 +24,7 @@ import {
   MistakeTag,
 } from '../types';
 import { getRelativeDate } from './seed';
+import { getCuratedProblems, getCuratedCounts } from '../data/curatedProblems';
 
 class StoreManager {
   private storage: Storage;
@@ -127,12 +128,32 @@ class StoreManager {
     lastAttempt?: Attempt;
     revision?: Revision;
   }[] {
-    const problems = this.storage.getProblems().filter((p) => p.topic_ids.includes(topicId));
+    const trackedProblems = this.storage
+      .getProblems()
+      .filter((p) => p.topic_ids.includes(topicId));
     const allAttempts = this.storage.getAttempts();
-    return problems.map((problem) => {
+    const curatedForTopic = getCuratedProblems().filter((p) =>
+      p.topic_ids.includes(topicId)
+    );
+
+    const trackedTitles = new Set(
+      trackedProblems.map((p) => p.title.toLowerCase())
+    );
+    const combined: Problem[] = [...trackedProblems];
+
+    for (const cp of curatedForTopic) {
+      if (!trackedTitles.has(cp.title.toLowerCase())) {
+        combined.push(cp);
+        trackedTitles.add(cp.title.toLowerCase());
+      }
+    }
+
+    return combined.map((problem) => {
       const problemAttempts = allAttempts.filter((a) => a.problem_id === problem.id);
       const solvedAttempts = problemAttempts.filter((a) => a.status === 'solved');
-      const sortedAttempts = [...problemAttempts].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const sortedAttempts = [...problemAttempts].sort((a, b) =>
+        (b.date || '').localeCompare(a.date || '')
+      );
       const revision = this.storage.getRevision(problem.id);
       return {
         problem,
@@ -212,11 +233,165 @@ class StoreManager {
     return this.storage.addProblem(input);
   }
 
+  public getCuratedProblems(tag?: 'blind75' | 'neetcode150' | 'neetcode250' | 'all'): Problem[] {
+    return getCuratedProblems(tag);
+  }
+
+  public getCuratedCounts() {
+    return getCuratedCounts();
+  }
+
+  public importCuratedList(listName: 'blind75' | 'neetcode150' | 'neetcode250' | 'all'): {
+    imported: number;
+    existing: number;
+  } {
+    const curated = getCuratedProblems(listName === 'all' ? undefined : listName);
+    const existingProblems = this.storage.getProblems();
+    const existingTitles = new Set(existingProblems.map((p) => p.title.toLowerCase()));
+    const existingLinks = new Set(
+      existingProblems.map((p) => p.link.toLowerCase()).filter(Boolean)
+    );
+
+    let imported = 0;
+    let existing = 0;
+
+    for (const cp of curated) {
+      if (
+        existingTitles.has(cp.title.toLowerCase()) ||
+        (cp.link && existingLinks.has(cp.link.toLowerCase()))
+      ) {
+        existing++;
+      } else {
+        this.storage.addProblem({
+          id: cp.id,
+          title: cp.title,
+          platform: cp.platform,
+          link: cp.link,
+          difficulty: cp.difficulty,
+          topic_ids: cp.topic_ids,
+          list_tags: cp.list_tags,
+          category: cp.category,
+          leetcode_id: cp.leetcode_id,
+          created_date: getRelativeDate(0),
+        });
+        existingTitles.add(cp.title.toLowerCase());
+        if (cp.link) existingLinks.add(cp.link.toLowerCase());
+        imported++;
+      }
+    }
+
+    return { imported, existing };
+  }
+
+  public getProblemCatalog(options?: {
+    listTag?: 'blind75' | 'neetcode150' | 'neetcode250' | 'all' | 'tracked';
+  }): {
+    problem: Problem;
+    attemptsCount: number;
+    solvedCount: number;
+    status: 'solved' | 'attempted' | 'unsolved';
+    lastAttemptDate?: string;
+    nextDueDate?: string;
+    isTracked: boolean;
+  }[] {
+    const trackedProblems = this.storage.getProblems();
+    const attempts = this.storage.getAttempts();
+    const revisions = this.storage.getRevisions();
+    const curated = getCuratedProblems(
+      options?.listTag === 'tracked' || options?.listTag === 'all' ? undefined : options?.listTag
+    );
+
+    const trackedMap = new Map<string, Problem>();
+    for (const p of trackedProblems) {
+      trackedMap.set(p.title.toLowerCase(), p);
+      trackedMap.set(p.id, p);
+    }
+
+    const combinedProblems: { problem: Problem; isTracked: boolean }[] = [];
+    const seenTitles = new Set<string>();
+
+    if (options?.listTag === 'tracked') {
+      for (const p of trackedProblems) {
+        seenTitles.add(p.title.toLowerCase());
+        combinedProblems.push({ problem: p, isTracked: true });
+      }
+    } else {
+      for (const cp of curated) {
+        seenTitles.add(cp.title.toLowerCase());
+        const tracked = trackedMap.get(cp.title.toLowerCase());
+        if (tracked) {
+          combinedProblems.push({
+            problem: {
+              ...cp,
+              id: tracked.id,
+              created_date: tracked.created_date,
+            },
+            isTracked: true,
+          });
+        } else {
+          combinedProblems.push({ problem: cp, isTracked: false });
+        }
+      }
+
+      if (!options?.listTag || options?.listTag === 'all') {
+        for (const p of trackedProblems) {
+          if (!seenTitles.has(p.title.toLowerCase())) {
+            combinedProblems.push({ problem: p, isTracked: true });
+          }
+        }
+      }
+    }
+
+    const revMap = new Map(revisions.map((r) => [r.problem_id, r]));
+
+    return combinedProblems.map(({ problem, isTracked }) => {
+      const pAttempts = attempts.filter((a) => a.problem_id === problem.id);
+      const solvedCount = pAttempts.filter((a) => a.status === 'solved').length;
+      const sortedAttempts = [...pAttempts].sort((a, b) =>
+        (b.date || '').localeCompare(a.date || '')
+      );
+      const lastAttempt = sortedAttempts[0];
+      const rev = revMap.get(problem.id);
+
+      let status: 'solved' | 'attempted' | 'unsolved' = 'unsolved';
+      if (solvedCount > 0) status = 'solved';
+      else if (pAttempts.length > 0) status = 'attempted';
+
+      return {
+        problem,
+        attemptsCount: pAttempts.length,
+        solvedCount,
+        status,
+        lastAttemptDate: lastAttempt?.date,
+        nextDueDate: rev?.next_due_date,
+        isTracked,
+      };
+    });
+  }
+
   public logAttempt(input: LogAttemptInput): { attempt: Attempt; updated_revision?: Revision } {
     let problem: Problem | undefined;
 
     if (input.problem_id) {
       problem = this.storage.getProblem(input.problem_id);
+      if (!problem) {
+        const curated = getCuratedProblems();
+        const cp = curated.find((c) => c.id === input.problem_id || c.title.toLowerCase() === input.title.trim().toLowerCase());
+        if (cp) {
+          problem = this.storage.addProblem({
+            id: cp.id,
+            title: cp.title,
+            platform: cp.platform,
+            link: cp.link,
+            difficulty: cp.difficulty,
+            topic_ids: cp.topic_ids,
+            list_tags: cp.list_tags,
+            category: cp.category,
+            leetcode_id: cp.leetcode_id,
+            created_date: input.date || getRelativeDate(0),
+          });
+        }
+      }
     }
 
     if (!problem) {

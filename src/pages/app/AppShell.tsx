@@ -1,4 +1,5 @@
 import { FC, useState, useEffect } from 'react';
+import { ProblemDifficulty } from '../../api';
 import { AppNav, AppScreenId } from '../../components/app/AppNav';
 import { TodayScreen } from './TodayScreen';
 import { ReviewScreen } from './ReviewScreen';
@@ -26,7 +27,12 @@ export const AppShell: FC<AppShellProps> = ({
   onBackToLanding,
 }) => {
   const [currentScreen, setCurrentScreen] = useState<AppScreenId>(initialScreen);
-  const [logPrefill, setLogPrefill] = useState<{ title?: string; topicId?: string }>({});
+  const [logPrefill, setLogPrefill] = useState<{
+    title?: string;
+    topicId?: string;
+    link?: string;
+    difficulty?: ProblemDifficulty;
+  }>({});
   const [isCoachOpen, setIsCoachOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
@@ -45,8 +51,13 @@ export const AppShell: FC<AppShellProps> = ({
     return () => window.removeEventListener('keydown', handleGlobalShortcuts);
   }, []);
 
-  const handleNavigateToLog = (title?: string, topicId?: string) => {
-    setLogPrefill({ title, topicId });
+  const handleNavigateToLog = (
+    title?: string,
+    topicId?: string,
+    link?: string,
+    difficulty?: ProblemDifficulty
+  ) => {
+    setLogPrefill({ title, topicId, link, difficulty });
     setCurrentScreen('log');
   };
 
@@ -80,6 +91,8 @@ export const AppShell: FC<AppShellProps> = ({
           <LogScreen
             initialTitle={logPrefill.title}
             initialTopicId={logPrefill.topicId}
+            initialLink={logPrefill.link}
+            initialDifficulty={logPrefill.difficulty}
             onSuccess={handleLogSuccess}
           />
         )}

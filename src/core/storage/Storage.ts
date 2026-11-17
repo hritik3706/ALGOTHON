@@ -255,6 +255,9 @@ export class Storage {
     difficulty: ProblemDifficulty;
     topic_ids: string[];
     created_date?: string;
+    list_tags?: string[];
+    category?: string;
+    leetcode_id?: number;
   }): Problem {
     // 1. Validate title
     if (!input.title || !input.title.trim()) {
@@ -286,6 +289,9 @@ export class Storage {
       difficulty: input.difficulty,
       topic_ids: input.topic_ids,
       created_date: input.created_date || new Date().toISOString().split('T')[0],
+      list_tags: input.list_tags,
+      category: input.category,
+      leetcode_id: input.leetcode_id,
     };
 
     this.problems.set(problem.id, problem);

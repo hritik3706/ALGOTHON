@@ -40,6 +40,24 @@ export async function getProblems(): Promise<Problem[]> {
   return Promise.resolve(storeManager.getProblems());
 }
 
+export async function getCuratedProblems(tag?: 'blind75' | 'neetcode150' | 'neetcode250' | 'all'): Promise<Problem[]> {
+  return Promise.resolve(storeManager.getCuratedProblems(tag));
+}
+
+export function getCuratedCounts() {
+  return storeManager.getCuratedCounts();
+}
+
+export async function importCuratedList(listName: 'blind75' | 'neetcode150' | 'neetcode250' | 'all') {
+  return Promise.resolve(storeManager.importCuratedList(listName));
+}
+
+export async function getProblemCatalog(options?: {
+  listTag?: 'blind75' | 'neetcode150' | 'neetcode250' | 'all' | 'tracked';
+}) {
+  return Promise.resolve(storeManager.getProblemCatalog(options));
+}
+
 export async function getAttempts(): Promise<Attempt[]> {
   return Promise.resolve(storeManager.getAttempts());
 }

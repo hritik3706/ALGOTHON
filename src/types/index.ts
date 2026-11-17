@@ -28,6 +28,9 @@ export interface Problem {
   topic_ids: string[];
   created_date: string;
   url_hash?: string;
+  list_tags?: string[];
+  category?: string;
+  leetcode_id?: number;
 }
 
 export interface Attempt {

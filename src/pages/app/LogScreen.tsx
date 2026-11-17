@@ -21,12 +21,16 @@ import { Check, Search, ExternalLink, X } from 'lucide-react';
 interface LogScreenProps {
   initialTitle?: string;
   initialTopicId?: string;
+  initialLink?: string;
+  initialDifficulty?: ProblemDifficulty;
   onSuccess: () => void;
 }
 
 export const LogScreen: FC<LogScreenProps> = ({
   initialTitle = '',
   initialTopicId,
+  initialLink = '',
+  initialDifficulty,
   onSuccess,
 }) => {
   const { showToast } = useToast();
@@ -39,8 +43,8 @@ export const LogScreen: FC<LogScreenProps> = ({
   // Form State
   const [title, setTitle] = useState(initialTitle);
   const [platform, setPlatform] = useState('LeetCode');
-  const [link, setLink] = useState('');
-  const [difficulty, setDifficulty] = useState<ProblemDifficulty>('medium');
+  const [link, setLink] = useState(initialLink);
+  const [difficulty, setDifficulty] = useState<ProblemDifficulty>(initialDifficulty || 'medium');
   const [selectedTopics, setSelectedTopics] = useState<string[]>(
     initialTopicId ? [initialTopicId] : ['arrays']
   );
