@@ -38,7 +38,8 @@ describe('Curated Problems & LeetCode Catalog', () => {
     expect(counts.blind75).toBeGreaterThanOrEqual(75);
     expect(counts.neetcode150).toBeGreaterThanOrEqual(150);
     expect(counts.neetcode250).toBeGreaterThanOrEqual(230);
-    expect(counts.total).toBe(CURATED_PROBLEMS_RAW.length);
+    expect(counts.totalAllLeetcode).toBeGreaterThanOrEqual(4000);
+    expect(counts.total).toBeGreaterThanOrEqual(4000);
   });
 
   it('filters curated problems by list tag accurately', () => {
@@ -59,7 +60,7 @@ describe('Curated Problems & LeetCode Catalog', () => {
   it('returns unified problem catalog with solve status and tracking indicators', () => {
     // Initially empty storage
     const catalog = storeManager.getProblemCatalog({ listTag: 'all' });
-    expect(catalog.length).toBeGreaterThanOrEqual(230);
+    expect(catalog.length).toBeGreaterThanOrEqual(4000);
 
     // First item should be unsolved and not tracked
     const first = catalog[0];
@@ -108,3 +109,4 @@ describe('Curated Problems & LeetCode Catalog', () => {
     expect(res2.existing).toBe(res1.imported);
   });
 });
+

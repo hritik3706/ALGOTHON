@@ -1,4 +1,5 @@
 import { Problem } from '../types';
+import allLeetcodeRaw from './allLeetcodeProblems.json';
 
 export interface CuratedProblemDef {
   leetcode_id: number;
@@ -2199,55 +2200,108 @@ export const CURATED_PROBLEMS_RAW: CuratedProblemDef[] = [
   },
 ];
 
-/**
- * Converts raw curated problem definitions into full Algothon Problem models.
- * Ensures genuine LeetCode URLs `https://leetcode.com/problems/<slug>/`.
- */
-export function getCuratedProblems(
-  filterTag?: 'blind75' | 'neetcode150' | 'neetcode250' | 'all'
-): Problem[] {
-  const list =
-    !filterTag || filterTag === 'all'
-      ? CURATED_PROBLEMS_RAW
-      : CURATED_PROBLEMS_RAW.filter((p) => p.list_tags.includes(filterTag));
+// Category and tags lookup maps derived from curated set
+const CURATED_CATEGORY_MAP = new Map<string, string>();
+const CURATED_TAGS_MAP = new Map<string, ('blind75' | 'neetcode150' | 'neetcode250')[]>();
 
-  return list.map((p) => ({
-    id: `curated-${p.slug}`,
+for (const p of CURATED_PROBLEMS_RAW) {
+  CURATED_CATEGORY_MAP.set(p.slug, p.category);
+  CURATED_TAGS_MAP.set(p.slug, p.list_tags);
+}
+
+const TOPIC_NAME_MAP: Record<string, string> = {
+  arrays: 'Arrays',
+  hashing: 'Hash Table',
+  two_pointers: 'Two Pointers & Sliding Window',
+  binary_search: 'Binary Search',
+  stacks_queues: 'Stacks & Queues',
+  recursion: 'Linked Lists & Recursion',
+  backtracking: 'Backtracking',
+  trees: 'Trees & Tries',
+  graphs: 'Graphs & Search',
+  dp: 'Dynamic Programming',
+};
+
+interface RawProblemEntry {
+  id: number;
+  title: string;
+  slug: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  topic_ids: string[];
+  list_tags?: ('blind75' | 'neetcode150' | 'neetcode250')[];
+}
+
+/**
+ * All 4,115 LeetCode problems, mapped with authentic links and topics.
+ */
+export const ALL_LEETCODE_PROBLEMS: Problem[] = (
+  allLeetcodeRaw as unknown as RawProblemEntry[]
+).map((p) => {
+  const curatedTags = CURATED_TAGS_MAP.get(p.slug);
+  const tags = curatedTags || p.list_tags || [];
+  const category =
+    CURATED_CATEGORY_MAP.get(p.slug) ||
+    TOPIC_NAME_MAP[p.topic_ids[0]] ||
+    'Algorithms';
+
+  return {
+    id: `lc-${p.id}`,
     title: p.title,
     platform: 'LeetCode',
     link: `https://leetcode.com/problems/${p.slug}/`,
     difficulty: p.difficulty,
     topic_ids: p.topic_ids,
     created_date: '2026-01-01',
-    list_tags: p.list_tags,
-    category: p.category,
-    leetcode_id: p.leetcode_id,
-  }));
+    list_tags: tags.length > 0 ? tags : undefined,
+    category,
+    leetcode_id: p.id,
+  };
+});
+
+/**
+ * Converts raw problem definitions into full Algothon Problem models.
+ * Ensures genuine LeetCode URLs `https://leetcode.com/problems/<slug>/`.
+ */
+export function getCuratedProblems(
+  filterTag?: 'blind75' | 'neetcode150' | 'neetcode250' | 'all'
+): Problem[] {
+  if (!filterTag || filterTag === 'all') {
+    return ALL_LEETCODE_PROBLEMS;
+  }
+
+  // Filter curated problems by list tag
+  return ALL_LEETCODE_PROBLEMS.filter(
+    (p) => p.list_tags && p.list_tags.includes(filterTag)
+  );
 }
 
 /**
- * Returns summary counts for the curated collections.
+ * Returns summary counts for the collections.
  */
 export function getCuratedCounts(): {
   blind75: number;
   neetcode150: number;
   neetcode250: number;
+  totalAllLeetcode: number;
   total: number;
 } {
   let b75 = 0;
   let n150 = 0;
   let n250 = 0;
 
-  for (const p of CURATED_PROBLEMS_RAW) {
-    if (p.list_tags.includes('blind75')) b75++;
-    if (p.list_tags.includes('neetcode150')) n150++;
-    if (p.list_tags.includes('neetcode250')) n250++;
+  for (const p of ALL_LEETCODE_PROBLEMS) {
+    if (p.list_tags) {
+      if (p.list_tags.includes('blind75')) b75++;
+      if (p.list_tags.includes('neetcode150')) n150++;
+      if (p.list_tags.includes('neetcode250')) n250++;
+    }
   }
 
   return {
     blind75: b75,
     neetcode150: n150,
     neetcode250: n250,
-    total: CURATED_PROBLEMS_RAW.length,
+    totalAllLeetcode: ALL_LEETCODE_PROBLEMS.length,
+    total: ALL_LEETCODE_PROBLEMS.length,
   };
 }

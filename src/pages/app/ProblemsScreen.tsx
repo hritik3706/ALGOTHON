@@ -20,6 +20,10 @@ import {
   Download,
   Shuffle,
   BookmarkCheck,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 
 interface CatalogItem {
@@ -57,6 +61,10 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [isImporting, setIsImporting] = useState(false);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(50);
+
   const reloadData = async () => {
     setIsLoading(true);
     try {
@@ -73,7 +81,13 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
 
   useEffect(() => {
     reloadData();
+    setCurrentPage(1);
   }, [selectedList]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, selectedDifficulty, selectedTopic, selectedStatus, pageSize]);
 
   // Derived filtered problems
   const filtered = useMemo(() => {
@@ -106,7 +120,14 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
     });
   }, [catalogItems, query, selectedDifficulty, selectedTopic, selectedStatus]);
 
-  // Statistics for current curated collection
+  // Paginated slice
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
+  // Statistics for current collection
   const stats = useMemo(() => {
     const total = catalogItems.length;
     const solved = catalogItems.filter((i) => i.status === 'solved').length;
@@ -162,7 +183,7 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="font-mono text-[11px] uppercase tracking-wider text-accent font-semibold px-2 py-0.5 rounded bg-accent/10 border border-accent/20">
-              LeetCode & NeetCode Hub
+              LeetCode Problemset • 4,115 Questions
             </span>
             <span className="font-mono text-xs text-fg-faint">• Direct LeetCode Links</span>
           </div>
@@ -170,7 +191,7 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
             Problem <em className="italic text-accent">Library & Curated Sets</em>
           </h1>
           <p className="font-mono text-xs sm:text-sm text-fg-muted mt-1 max-w-2xl">
-            Explore 250+ essential interview problems from Blind 75, NeetCode 150, and NeetCode 250.
+            Complete database of 4,115 LeetCode problems including Blind 75, NeetCode 150, and NeetCode 250.
             Click any problem to practice directly on LeetCode, then log your attempt for automated SM-2 spaced repetition.
           </p>
         </div>
@@ -199,7 +220,7 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
       {/* Curated List Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-border/60">
         {[
-          { id: 'all', label: 'All Problems', badge: '250+' },
+          { id: 'all', label: 'All LeetCode', badge: '4,115' },
           { id: 'blind75', label: 'Blind 75', badge: '75' },
           { id: 'neetcode150', label: 'NeetCode 150', badge: '150' },
           { id: 'neetcode250', label: 'NeetCode 250', badge: '250' },
@@ -252,7 +273,7 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
             <span className="font-mono text-xs uppercase text-fg-muted font-semibold flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-accent" />
               {selectedList === 'all'
-                ? 'Master Catalog Progress'
+                ? 'All LeetCode Database'
                 : selectedList === 'blind75'
                 ? 'Blind 75 Progress'
                 : selectedList === 'neetcode150'
@@ -262,7 +283,7 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
                 : 'Tracked Practice Progress'}
             </span>
             <span className="font-mono text-xs font-bold text-accent">
-              {stats.solved} / {stats.total} Solved ({stats.pct}%)
+              {stats.solved} / {stats.total.toLocaleString()} Solved ({stats.pct}%)
             </span>
           </div>
 
@@ -279,25 +300,25 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
           <div className="bg-surface-2/60 rounded p-2">
             <span className="block font-mono text-[10px] text-fg-faint uppercase">Easy</span>
             <span className="font-mono text-sm font-bold text-emerald-400">
-              {stats.easy}
+              {stats.easy.toLocaleString()}
             </span>
           </div>
           <div className="bg-surface-2/60 rounded p-2">
             <span className="block font-mono text-[10px] text-fg-faint uppercase">Medium</span>
             <span className="font-mono text-sm font-bold text-amber-400">
-              {stats.medium}
+              {stats.medium.toLocaleString()}
             </span>
           </div>
           <div className="bg-surface-2/60 rounded p-2">
             <span className="block font-mono text-[10px] text-fg-faint uppercase">Hard</span>
             <span className="font-mono text-sm font-bold text-rose-400">
-              {stats.hard}
+              {stats.hard.toLocaleString()}
             </span>
           </div>
           <div className="hidden sm:block bg-surface-2/60 rounded p-2">
             <span className="block font-mono text-[10px] text-fg-faint uppercase">Attempted</span>
             <span className="font-mono text-sm font-bold text-fg">
-              {stats.attempted}
+              {stats.attempted.toLocaleString()}
             </span>
           </div>
         </div>
@@ -312,7 +333,7 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title, #ID, category, topic..."
+            placeholder="Search #ID, title, slug, topic..."
             className="w-full pl-9 pr-4 py-2 rounded-lg bg-surface border border-border text-xs font-mono text-fg placeholder:text-fg-faint focus-visible:outline-accent"
           />
         </div>
@@ -364,25 +385,41 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
 
       {/* Problem Items List */}
       <Card className="p-6 bg-surface space-y-4">
-        <div className="flex items-center justify-between border-b border-border pb-3">
+        {/* Header & Pagination Top Summary */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-fg uppercase font-semibold">
-              Showing {filtered.length} Problems
+              {filtered.length.toLocaleString()} Problems Found
             </span>
-            <span className="font-mono text-[10px] text-fg-faint">
-              (Filtered from {catalogItems.length} total)
-            </span>
+            {filtered.length > 0 && (
+              <span className="font-mono text-[11px] text-fg-faint">
+                (Showing {(currentPage - 1) * pageSize + 1}–
+                {Math.min(currentPage * pageSize, filtered.length)})
+              </span>
+            )}
           </div>
 
-          <span className="font-mono text-[11px] text-fg-faint hidden sm:inline">
-            Direct LeetCode URL links open in new tab
-          </span>
+          {/* Page Size Selector */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 font-mono text-xs text-fg-muted">
+              <span>Show:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="bg-surface-2 border border-border rounded px-2 py-1 text-xs font-mono text-fg"
+              >
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {isLoading ? (
           <div className="py-16 text-center space-y-2 font-mono text-xs text-fg-muted">
             <Clock className="w-5 h-5 mx-auto text-accent animate-spin" />
-            <p>Loading curated LeetCode catalog...</p>
+            <p>Loading LeetCode problem catalog...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center space-y-2 font-mono text-xs text-fg-faint">
@@ -406,15 +443,15 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
           </div>
         ) : (
           <div className="divide-y divide-border/40">
-            {filtered.map((item) => {
+            {paginatedItems.map((item) => {
               const p = item.problem;
               return (
                 <div
                   key={p.id}
-                  className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 group hover:bg-surface-2/30 px-2 -mx-2 rounded transition-colors"
+                  className="py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 group hover:bg-surface-2/30 px-2 -mx-2 rounded transition-colors"
                 >
                   {/* Left: Problem Title, ID, Difficulty, Tags */}
-                  <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* LeetCode Number */}
                       {p.leetcode_id && (
@@ -535,6 +572,56 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination Bottom Bar */}
+        {filtered.length > pageSize && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
+            <span className="font-mono text-xs text-fg-muted">
+              Page <strong className="text-fg">{currentPage}</strong> of{' '}
+              <strong className="text-fg">{totalPages.toLocaleString()}</strong> ({filtered.length.toLocaleString()} total)
+            </span>
+
+            <div className="flex items-center gap-1 font-mono text-xs">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded bg-surface border border-border text-fg-muted hover:text-fg disabled:opacity-40"
+                title="First page"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded bg-surface border border-border text-fg-muted hover:text-fg disabled:opacity-40"
+                title="Previous page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <span className="px-3 py-1 rounded bg-surface-2 border border-border text-xs text-fg font-bold">
+                {currentPage} / {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded bg-surface border border-border text-fg-muted hover:text-fg disabled:opacity-40"
+                title="Next page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded bg-surface border border-border text-fg-muted hover:text-fg disabled:opacity-40"
+                title="Last page"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </Card>
