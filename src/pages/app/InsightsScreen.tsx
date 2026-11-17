@@ -4,27 +4,36 @@ import { Pill } from '../../components/common/Pill';
 import {
   getInsights,
   getCoverageMatrix,
+  getMeasuredRecallCurve,
   subscribeToStore,
   InsightSummary,
   TopicCoverageRow,
 } from '../../api';
-import { AlertTriangle, TrendingUp, BarChart2, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, TrendingUp, BarChart2, CheckCircle2, Clock, Sparkles } from 'lucide-react';
 
 export const InsightsScreen: FC = () => {
   const [insights, setInsights] = useState<InsightSummary | null>(null);
   const [coverageRows, setCoverageRows] = useState<TopicCoverageRow[]>([]);
+  const [recallSummary, setRecallSummary] = useState<{
+    buckets: { range: string; minDays: number; maxDays: number; totalAttempts: number; solvedAttempts: number; recallRate: number }[];
+    summarySentence: string;
+    totalReviews: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     const fetchInsights = () => {
-      Promise.all([getInsights(), getCoverageMatrix()]).then(([ins, matrix]) => {
-        if (mounted) {
-          setInsights(ins);
-          setCoverageRows(matrix);
-          setIsLoading(false);
+      Promise.all([getInsights(), getCoverageMatrix(), getMeasuredRecallCurve()]).then(
+        ([ins, matrix, recall]) => {
+          if (mounted) {
+            setInsights(ins);
+            setCoverageRows(matrix);
+            setRecallSummary(recall);
+            setIsLoading(false);
+          }
         }
-      });
+      );
     };
     fetchInsights();
     const unsubscribe = subscribeToStore(fetchInsights);
@@ -54,9 +63,66 @@ export const InsightsScreen: FC = () => {
           Performance <em className="italic text-accent">Insights & Analytics</em>
         </h1>
         <p className="font-mono text-xs sm:text-sm text-fg-muted mt-1">
-          Objective diagnostic engine: Wilson score lower bounds, avoidance bias detection, and momentum tracking.
+          Objective diagnostic engine: Wilson score lower bounds, avoidance bias detection, empirical retention curve, and momentum tracking.
         </p>
       </div>
+
+      {/* Your Memory, Measured (Empirical Retention Curve) */}
+      <Card className="p-6 bg-surface border-accent/25 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+          <div>
+            <h3 className="font-ui text-base font-semibold text-fg flex items-center gap-2">
+              <Clock className="w-4 h-4 text-accent" />
+              <span>Your Memory, Measured (Empirical Spaced Recall Curve)</span>
+            </h3>
+            <p className="font-mono text-xs text-fg-faint mt-0.5">
+              Real clean solve rate bucketed by days elapsed between reviews. No invented formulas.
+            </p>
+          </div>
+          <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 font-semibold self-start sm:self-center">
+            {recallSummary ? `${recallSummary.totalReviews} Measured Review Pairs` : 'Calculating...'}
+          </span>
+        </div>
+
+        {recallSummary && (
+          <div className="space-y-4">
+            {/* Dynamic Summary Sentence */}
+            <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border flex items-center gap-2.5 font-mono text-xs text-fg">
+              <Sparkles className="w-4 h-4 text-accent shrink-0" />
+              <span>{recallSummary.summarySentence}</span>
+            </div>
+
+            {/* Retention Rate Bars */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {recallSummary.buckets.map((b, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl bg-surface-2/40 border border-border/80 flex flex-col justify-between space-y-2"
+                >
+                  <div className="font-mono text-[11px] text-fg-faint font-semibold">
+                    {b.range}
+                  </div>
+                  <div>
+                    <div className="font-display text-2xl text-fg leading-none">
+                      {b.totalAttempts > 0 ? `${b.recallRate}%` : '—'}
+                    </div>
+                    <div className="w-full bg-surface-2 rounded-full h-1.5 mt-2 overflow-hidden">
+                      <div
+                        className="bg-accent h-1.5 rounded-full transition-all duration-300"
+                        style={{ width: `${b.totalAttempts > 0 ? b.recallRate : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="font-mono text-[10px] text-fg-faint flex items-center justify-between">
+                    <span>Sample size:</span>
+                    <strong className="text-fg">n = {b.totalAttempts}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Avoidance Alerts Section (if any topic is avoided) */}
       {insights && insights.avoided_topics.length > 0 && (

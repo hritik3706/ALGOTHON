@@ -52,6 +52,10 @@ export async function getMistakeAnalytics() {
   return Promise.resolve(storeManager.getMistakeAnalytics());
 }
 
+export async function getMeasuredRecallCurve() {
+  return Promise.resolve(storeManager.getMeasuredRecallCurve());
+}
+
 export async function searchProblems(query: string): Promise<Problem[]> {
   return Promise.resolve(storeManager.searchProblems(query));
 }

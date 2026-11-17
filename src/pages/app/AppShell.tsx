@@ -6,6 +6,8 @@ import { LogScreen } from './LogScreen';
 import { ProblemsScreen } from './ProblemsScreen';
 import { MistakesScreen } from './MistakesScreen';
 import { TopicsScreen } from './TopicsScreen';
+import { ConceptsScreen } from './ConceptsScreen';
+import { VisualizerScreen } from './VisualizerScreen';
 import { GraphScreen } from './GraphScreen';
 import { RevisionsScreen } from './RevisionsScreen';
 import { InsightsScreen } from './InsightsScreen';
@@ -87,8 +89,12 @@ export const AppShell: FC<AppShellProps> = ({
         {currentScreen === 'mistakes' && (
           <MistakesScreen onLogProblem={handleNavigateToLog} />
         )}
+        {currentScreen === 'concepts' && (
+          <ConceptsScreen onOpenCoachWithPrompt={() => setIsCoachOpen(true)} />
+        )}
+        {currentScreen === 'visualizer' && <VisualizerScreen />}
         {currentScreen === 'topics' && (
-          <TopicsScreen onLogTopic={(tid) => handleNavigateToLog(undefined, tid)} />
+          <TopicsScreen onLogTopic={(tid, title) => handleNavigateToLog(title, tid)} />
         )}
         {currentScreen === 'graph' && (
           <GraphScreen onLogTopic={(tid) => handleNavigateToLog(undefined, tid)} />

@@ -15,6 +15,8 @@ export const App: FC = () => {
       'review',
       'log',
       'problems',
+      'concepts',
+      'visualizer',
       'mistakes',
       'topics',
       'graph',

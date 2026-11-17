@@ -454,6 +454,11 @@ class StoreManager {
     return TopicGraph.computeGraphLayout(topics);
   }
 
+  public getMeasuredRecallCurve() {
+    const attempts = this.storage.getAttempts();
+    return StatsEngine.computeMeasuredRecallCurve(attempts);
+  }
+
   /**
    * Demo Support: Reload sample dataset
    */

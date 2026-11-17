@@ -14,6 +14,8 @@ import {
   Settings,
   Bot,
   Command,
+  Activity,
+  Sparkles,
 } from 'lucide-react';
 
 export type AppScreenId =
@@ -22,6 +24,8 @@ export type AppScreenId =
   | 'log'
   | 'problems'
   | 'topics'
+  | 'concepts'
+  | 'visualizer'
   | 'graph'
   | 'revisions'
   | 'mistakes'
@@ -48,6 +52,8 @@ export const AppNav: FC<AppNavProps> = ({
     { id: 'review', label: 'Flashcard Review', icon: Layers },
     { id: 'log', label: 'Log Attempt', icon: PlusCircle },
     { id: 'problems', label: 'Problem Library', icon: BookOpen },
+    { id: 'concepts', label: 'Concept Patterns', icon: Sparkles },
+    { id: 'visualizer', label: 'Visualizers', icon: Activity },
     { id: 'mistakes', label: 'Mistake Journal', icon: AlertTriangle },
     { id: 'topics', label: 'Topic Mastery', icon: FolderTree },
     { id: 'graph', label: 'Roadmap Graph', icon: Network },

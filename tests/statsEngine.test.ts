@@ -144,5 +144,33 @@ describe('StatsEngine', () => {
     const emptyMatrix = StatsEngine.computeCoverageMatrix([], [], []);
     expect(emptyMatrix).toEqual([]);
   });
+
+  it('computes empirical recall curve with interval bucketing and sample sizes', () => {
+    const attempts: Attempt[] = [
+      { id: 'a1', problem_id: 'p1', date: '2026-11-01', status: 'solved', time_taken: 10, mistake_tag: 'none', recall_quality: 5 },
+      { id: 'a2', problem_id: 'p1', date: '2026-11-03', status: 'solved', time_taken: 10, mistake_tag: 'none', recall_quality: 5 }, // gap = 2d -> bucket 2 to 3 days
+      { id: 'a3', problem_id: 'p1', date: '2026-11-10', status: 'failed', time_taken: 15, mistake_tag: 'logic', recall_quality: 1 }, // gap = 7d -> bucket 4 to 7 days
+      { id: 'a4', problem_id: 'p2', date: '2026-11-01', status: 'solved', time_taken: 10, mistake_tag: 'none', recall_quality: 5 },
+      { id: 'a5', problem_id: 'p2', date: '2026-11-15', status: 'solved', time_taken: 12, mistake_tag: 'none', recall_quality: 4 }, // gap = 14d -> bucket 8 to 14 days
+    ];
+
+    const recall = StatsEngine.computeMeasuredRecallCurve(attempts);
+    expect(recall.totalReviews).toBe(3);
+
+    const bucket2_3 = recall.buckets.find((b) => b.range === '2 to 3 days')!;
+    expect(bucket2_3.totalAttempts).toBe(1);
+    expect(bucket2_3.solvedAttempts).toBe(1);
+    expect(bucket2_3.recallRate).toBe(100);
+
+    const bucket4_7 = recall.buckets.find((b) => b.range === '4 to 7 days')!;
+    expect(bucket4_7.totalAttempts).toBe(1);
+    expect(bucket4_7.solvedAttempts).toBe(0);
+    expect(bucket4_7.recallRate).toBe(0);
+
+    const bucket8_14 = recall.buckets.find((b) => b.range === '8 to 14 days')!;
+    expect(bucket8_14.totalAttempts).toBe(1);
+    expect(bucket8_14.solvedAttempts).toBe(1);
+    expect(bucket8_14.recallRate).toBe(100);
+  });
 });
 
