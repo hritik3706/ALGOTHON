@@ -21,6 +21,7 @@ import {
   GraphLayoutResult,
   UpcomingRevisionItem,
   TopTopicStrength,
+  MistakeTag,
 } from '../types';
 import { getRelativeDate } from './seed';
 
@@ -113,6 +114,85 @@ class StoreManager {
 
   public getProblems(): Problem[] {
     return this.storage.getProblems();
+  }
+
+  public getAttempts(): Attempt[] {
+    return this.storage.getAttempts();
+  }
+
+  public getTopicProblems(topicId: string): {
+    problem: Problem;
+    attemptsCount: number;
+    solvedCount: number;
+    lastAttempt?: Attempt;
+    revision?: Revision;
+  }[] {
+    const problems = this.storage.getProblems().filter((p) => p.topic_ids.includes(topicId));
+    const allAttempts = this.storage.getAttempts();
+    return problems.map((problem) => {
+      const problemAttempts = allAttempts.filter((a) => a.problem_id === problem.id);
+      const solvedAttempts = problemAttempts.filter((a) => a.status === 'solved');
+      const sortedAttempts = [...problemAttempts].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const revision = this.storage.getRevision(problem.id);
+      return {
+        problem,
+        attemptsCount: problemAttempts.length,
+        solvedCount: solvedAttempts.length,
+        lastAttempt: sortedAttempts[0],
+        revision,
+      };
+    });
+  }
+
+  public getMistakeAnalytics(): {
+    totalMistakes: number;
+    tagCounts: Record<MistakeTag, number>;
+    tagAttempts: Record<MistakeTag, { attempt: Attempt; problem: Problem; topicNames: string }[]>;
+  } {
+    const attempts = this.storage.getAttempts();
+    const problems = this.storage.getProblems();
+    const problemMap = new Map(problems.map((p) => [p.id, p]));
+    const topics = this.storage.getTopics();
+    const topicMap = new Map(topics.map((t) => [t.id, t.name]));
+
+    const tagCounts: Record<MistakeTag, number> = {
+      logic: 0,
+      off_by_one: 0,
+      edge_case: 0,
+      tle: 0,
+      complexity: 0,
+      syntax: 0,
+      none: 0,
+    };
+
+    const tagAttempts: Record<MistakeTag, { attempt: Attempt; problem: Problem; topicNames: string }[]> = {
+      logic: [],
+      off_by_one: [],
+      edge_case: [],
+      tle: [],
+      complexity: [],
+      syntax: [],
+      none: [],
+    };
+
+    let totalMistakes = 0;
+
+    attempts.forEach((a) => {
+      const tag = a.mistake_tag;
+      if (tag && tag in tagCounts) {
+        tagCounts[tag]++;
+        const p = problemMap.get(a.problem_id);
+        if (p) {
+          const topicNames = p.topic_ids.map((tid) => topicMap.get(tid) || tid).join(', ');
+          tagAttempts[tag].push({ attempt: a, problem: p, topicNames });
+        }
+        if (tag !== 'none') {
+          totalMistakes++;
+        }
+      }
+    });
+
+    return { totalMistakes, tagCounts, tagAttempts };
   }
 
   public searchProblems(query: string): Problem[] {

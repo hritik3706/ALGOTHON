@@ -40,6 +40,18 @@ export async function getProblems(): Promise<Problem[]> {
   return Promise.resolve(storeManager.getProblems());
 }
 
+export async function getAttempts(): Promise<Attempt[]> {
+  return Promise.resolve(storeManager.getAttempts());
+}
+
+export async function getTopicProblems(topicId: string) {
+  return Promise.resolve(storeManager.getTopicProblems(topicId));
+}
+
+export async function getMistakeAnalytics() {
+  return Promise.resolve(storeManager.getMistakeAnalytics());
+}
+
 export async function searchProblems(query: string): Promise<Problem[]> {
   return Promise.resolve(storeManager.searchProblems(query));
 }
