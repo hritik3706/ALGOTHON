@@ -81,6 +81,39 @@ describe('Coach Chatbot & Safety Protocol', () => {
     fetchSpy.mockRestore();
   });
 
+  it('builds and supplies complete real-time practice snapshot to Gemini', async () => {
+    storeManager.loadDemoData();
+    const snapshot = storeManager.buildPracticeSnapshot();
+
+    expect(snapshot).toContain('REAL-TIME LEARNER PRACTICE DATABASE SNAPSHOT');
+    expect(snapshot).toContain('WEAKEST TOPICS');
+    expect(snapshot).toContain('TOPIC MASTERY & PREREQUISITE STATUS');
+    expect(snapshot).toContain('TODAY\'S RECOMMENDED PRACTICE PLAN');
+    expect(snapshot).toContain('RECENT PRACTICE ATTEMPTS');
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'Your weakest topic is Dynamic Programming with a Wilson score of 18/100.' }],
+            },
+          },
+        ],
+      }),
+    } as any);
+
+    const provider = new GeminiCoachProvider('test-api-key', 'gemini-3.1-flash-lite');
+    await provider.ask('What is my weakest topic?', { dataSnapshot: snapshot });
+
+    const calledBody = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
+    expect(calledBody.systemInstruction.parts[0].text).toContain('REAL-TIME LEARNER PRACTICE DATABASE SNAPSHOT');
+    expect(calledBody.systemInstruction.parts[0].text).toContain('YOU HAVE COMPLETE ACCESS TO THE LEARNER\'S PRACTICE DATABASE');
+
+    fetchSpy.mockRestore();
+  });
+
   it('GeminiCoachProvider gracefully falls back to offline engine when API returns error', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network unavailable'));
 
