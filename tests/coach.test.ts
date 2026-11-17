@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { CoachEngine } from '../src/core/coach/CoachEngine';
-import { sanitizeContextText } from '../src/core/coach/providers';
+import { sanitizeContextText, GeminiCoachProvider, OfflineCoachProvider } from '../src/core/coach/providers';
 import { storeManager } from '../src/core/storeManager';
 
 describe('Coach Chatbot & Safety Protocol', () => {
@@ -43,8 +43,53 @@ describe('Coach Chatbot & Safety Protocol', () => {
 
   it('asserts zero network calls occur in offline mode', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch');
-    await CoachEngine.answerQuery('how am I doing this week?');
+    const offlineProvider = new OfflineCoachProvider();
+    await offlineProvider.ask('how am I doing this week?');
     expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it('GeminiCoachProvider formats payload and extracts candidate text successfully', async () => {
+    const mockResponseText = 'Two pointers work by narrowing search boundaries in O(n) time.';
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: mockResponseText }],
+            },
+          },
+        ],
+      }),
+    } as any);
+
+    const provider = new GeminiCoachProvider('test-api-key', 'gemini-3.1-flash-lite');
+    const res = await provider.ask('Explain Two Pointers', { currentTopic: 'Two Pointers' });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const calledUrl = fetchSpy.mock.calls[0][0] as string;
+    expect(calledUrl).toContain('gemini-3.1-flash-lite');
+    expect(calledUrl).toContain('test-api-key');
+
+    const calledBody = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
+    expect(calledBody.contents[0].parts[0].text).toBe('Explain Two Pointers');
+    expect(calledBody.systemInstruction.parts[0].text).toContain('Algothon DSA Coach');
+    expect(res.text).toBe(mockResponseText);
+    expect(res.basedOnChips).toContain('Gemini AI Coach');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('GeminiCoachProvider gracefully falls back to offline engine when API returns error', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network unavailable'));
+
+    const provider = new GeminiCoachProvider('mock-key');
+    const res = await provider.ask('what should I do today?');
+
+    expect(res.text).toContain('Gemini API note');
+    expect(res.text).toContain('Showing local offline response');
+
     fetchSpy.mockRestore();
   });
 });

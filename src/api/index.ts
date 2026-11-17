@@ -118,6 +118,12 @@ export function clearAllData(): void {
 }
 
 export type { CoachResponse, ProposedAction } from '../core/coach/CoachEngine';
+export {
+  getStoredCoachMode,
+  setStoredCoachMode,
+  getStoredGeminiKey,
+  setStoredGeminiKey,
+} from '../core/coach/providers';
 
 export async function askCoach(query: string, currentTopicId?: string) {
   return storeManager.askCoach(query, currentTopicId);

@@ -6,6 +6,7 @@ import { RevisionScheduler } from './scheduler/RevisionScheduler';
 import { Planner } from './planner/Planner';
 import { InsightsEngine } from './stats/Insights';
 import { CoachEngine, CoachResponse } from './coach/CoachEngine';
+import { getActiveCoachProvider } from './coach/providers';
 import {
   Topic,
   Problem,
@@ -377,7 +378,29 @@ class StoreManager {
    * Demo Support: Reload sample dataset
    */
   public async askCoach(query: string, currentTopicId?: string): Promise<CoachResponse> {
-    return CoachEngine.answerQuery(query, currentTopicId);
+    const q = query.trim().toLowerCase();
+    // Fast path: quick action proposals are always generated deterministically client-side
+    if (q.startsWith('log') || q.startsWith('solve') || q.includes('just solved')) {
+      return CoachEngine.answerQuery(query, currentTopicId);
+    }
+
+    const provider = getActiveCoachProvider();
+    let currentTopicName = '';
+    if (currentTopicId) {
+      const t = this.storage.getTopics().find((item) => item.id === currentTopicId);
+      if (t) currentTopicName = t.name;
+    }
+
+    const insights = this.getInsights();
+    const weakTopics = insights.weak_topics.slice(0, 3).map((w) => w.topic.name);
+    const streak = this.getStreak();
+
+    return provider.ask(query, {
+      currentTopicId,
+      currentTopic: currentTopicName,
+      weakTopics,
+      streak,
+    });
   }
 
   public exportJSON(): string {
