@@ -143,6 +143,7 @@ export const AppShell: FC<AppShellProps> = ({
           setIsCommandPaletteOpen(false);
           setIsCoachOpen(true);
         }}
+        onLogProblem={handleNavigateToLog}
       />
     </div>
   );

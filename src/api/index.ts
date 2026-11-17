@@ -74,8 +74,8 @@ export async function getMeasuredRecallCurve() {
   return Promise.resolve(storeManager.getMeasuredRecallCurve());
 }
 
-export async function searchProblems(query: string): Promise<Problem[]> {
-  return Promise.resolve(storeManager.searchProblems(query));
+export async function searchProblems(query: string, limit?: number): Promise<Problem[]> {
+  return Promise.resolve(storeManager.searchProblems(query, limit));
 }
 
 export async function logAttempt(input: LogAttemptInput): Promise<{ attempt: Attempt; updated_revision?: Revision }> {

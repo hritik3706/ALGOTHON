@@ -10,6 +10,7 @@ import {
   Problem,
   ProblemDifficulty,
 } from '../../api';
+import { matchProblemQuery } from '../../data/curatedProblems';
 import {
   Search,
   PlusCircle,
@@ -93,16 +94,9 @@ export const ProblemsScreen: FC<ProblemsScreenProps> = ({ onLogProblem }) => {
   const filtered = useMemo(() => {
     return catalogItems.filter((item) => {
       const p = item.problem;
-      const q = query.trim().toLowerCase();
 
-      // Query matches title, slug, leetcode id, category, or topic
-      const matchesQuery =
-        !q ||
-        p.title.toLowerCase().includes(q) ||
-        (p.link && p.link.toLowerCase().includes(q)) ||
-        (p.category && p.category.toLowerCase().includes(q)) ||
-        (p.leetcode_id && p.leetcode_id.toString().includes(q)) ||
-        p.topic_ids.some((tid) => tid.toLowerCase().includes(q));
+      // Multi-token, ID, and category fuzzy matching
+      const matchesQuery = matchProblemQuery(p, query);
 
       // Difficulty match
       const matchesDiff =

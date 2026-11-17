@@ -108,5 +108,33 @@ describe('Curated Problems & LeetCode Catalog', () => {
     expect(res2.imported).toBe(0);
     expect(res2.existing).toBe(res1.imported);
   });
+
+  it('searches problems accurately across ID, multi-word titles, topics, and slugs', () => {
+    // 1. Search by exact ID with #
+    const byHash = storeManager.searchProblems('#1');
+    expect(byHash.length).toBeGreaterThan(0);
+    expect(byHash[0].title).toBe('Two Sum');
+    expect(byHash[0].leetcode_id).toBe(1);
+
+    // 2. Search by numeric ID without #
+    const byNum = storeManager.searchProblems('42');
+    const has42 = byNum.some((p) => p.leetcode_id === 42 || p.title.toLowerCase().includes('42'));
+    expect(has42).toBe(true);
+
+    // 3. Search multi-word title
+    const multi = storeManager.searchProblems('trapping rain water');
+    expect(multi.length).toBeGreaterThan(0);
+    expect(multi[0].title).toBe('Trapping Rain Water');
+
+    // 4. Search hyphenated slug
+    const bySlug = storeManager.searchProblems('coin-change');
+    expect(bySlug.length).toBeGreaterThan(0);
+    expect(bySlug[0].title).toBe('Coin Change');
+
+    // 5. Search high-numbered problem
+    const high = storeManager.searchProblems('#4115');
+    expect(high.length).toBeGreaterThan(0);
+    expect(high[0].leetcode_id).toBe(4115);
+  });
 });
 

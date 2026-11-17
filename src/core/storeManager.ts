@@ -24,7 +24,11 @@ import {
   MistakeTag,
 } from '../types';
 import { getRelativeDate } from './seed';
-import { getCuratedProblems, getCuratedCounts } from '../data/curatedProblems';
+import {
+  getCuratedProblems,
+  getCuratedCounts,
+  matchProblemQuery,
+} from '../data/curatedProblems';
 
 class StoreManager {
   private storage: Storage;
@@ -216,17 +220,25 @@ class StoreManager {
     return { totalMistakes, tagCounts, tagAttempts };
   }
 
-  public searchProblems(query: string): Problem[] {
-    const q = query.trim().toLowerCase();
-    const all = this.storage.getProblems();
-    if (!q) return all;
-    return all.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.platform.toLowerCase().includes(q) ||
-        p.difficulty.toLowerCase().includes(q) ||
-        p.topic_ids.some((tid) => tid.toLowerCase().includes(q))
-    );
+  public searchProblems(query: string, limit: number = 50): Problem[] {
+    const q = query.trim();
+    if (!q) return this.storage.getProblems();
+
+    const tracked = this.storage.getProblems().filter((p) => matchProblemQuery(p, q));
+    const allLeetcode = getCuratedProblems('all').filter((p) => matchProblemQuery(p, q));
+
+    const trackedTitles = new Set(tracked.map((p) => p.title.toLowerCase()));
+    const results: Problem[] = [...tracked];
+
+    for (const p of allLeetcode) {
+      if (!trackedTitles.has(p.title.toLowerCase())) {
+        results.push(p);
+        trackedTitles.add(p.title.toLowerCase());
+      }
+      if (results.length >= limit) break;
+    }
+
+    return results;
   }
 
   public addProblem(input: AddProblemInput): Problem {

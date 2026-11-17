@@ -9,13 +9,13 @@ import { useToast } from '../../components/common/Toast';
 import {
   logAttempt,
   getTopics,
-  getProblems,
   TopicSummary,
   Problem,
   ProblemDifficulty,
   AttemptStatus,
   MistakeTag,
 } from '../../api';
+import { getCuratedProblems, matchProblemQuery } from '../../data/curatedProblems';
 import { Check, Search, ExternalLink, X } from 'lucide-react';
 
 interface LogScreenProps {
@@ -62,7 +62,7 @@ export const LogScreen: FC<LogScreenProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    Promise.all([getTopics(), getProblems()]).then(([tList, pList]) => {
+    Promise.all([getTopics(), getCuratedProblems('all')]).then(([tList, pList]) => {
       setTopics(tList);
       setAllProblems(pList);
 
@@ -89,15 +89,10 @@ export const LogScreen: FC<LogScreenProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter matching problems as user types
-  const query = title.trim().toLowerCase();
+  // Filter matching problems across all 4,115 LeetCode problems as user types
+  const query = title.trim();
   const matchingProblems = query
-    ? allProblems.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.platform.toLowerCase().includes(query) ||
-          p.topic_ids.some((tid) => tid.toLowerCase().includes(query))
-      )
+    ? allProblems.filter((p) => matchProblemQuery(p, query)).slice(0, 10)
     : allProblems.slice(0, 8); // show popular/recent when focused with empty query
 
   const selectProblem = (problem: Problem) => {

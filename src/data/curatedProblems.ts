@@ -2305,3 +2305,39 @@ export function getCuratedCounts(): {
     total: ALL_LEETCODE_PROBLEMS.length,
   };
 }
+
+/**
+ * High-performance search matcher for LeetCode problems.
+ * Handles numeric queries (#42, 42, # 42), multi-word keywords, topics, slugs, and categories.
+ */
+export function matchProblemQuery(problem: Problem, rawQuery: string): boolean {
+  if (!rawQuery || !rawQuery.trim()) return true;
+
+  const cleanQ = rawQuery.trim().toLowerCase();
+
+  // 1. Direct number check (e.g. user typed "#42", "42", "# 42")
+  const numericMatch = cleanQ.match(/^#?\s*(\d+)$/);
+  if (numericMatch) {
+    const targetId = parseInt(numericMatch[1], 10);
+    if (problem.leetcode_id === targetId) return true;
+    if (problem.id === `lc-${targetId}` || problem.id === `p${targetId}`) return true;
+    if (problem.leetcode_id && problem.leetcode_id.toString().startsWith(numericMatch[1])) return true;
+  }
+
+  // 2. Tokenized multi-word search: every token must match
+  const tokens = cleanQ.split(/\s+/).filter(Boolean);
+
+  const searchCorpus = [
+    problem.title.toLowerCase(),
+    problem.title.toLowerCase().replace(/[^a-z0-9]/g, ''),
+    problem.difficulty.toLowerCase(),
+    problem.category ? problem.category.toLowerCase() : '',
+    problem.link ? problem.link.toLowerCase() : '',
+    problem.leetcode_id ? problem.leetcode_id.toString() : '',
+    problem.leetcode_id ? `#${problem.leetcode_id}` : '',
+    ...problem.topic_ids.map((t) => t.toLowerCase()),
+    ...(problem.list_tags || []).map((t) => t.toLowerCase()),
+  ].join(' ');
+
+  return tokens.every((token) => searchCorpus.includes(token));
+}
